@@ -79,4 +79,3 @@ func (s *Signature) Dump(w io.Writer) {
 func (s *Signature) Load(r io.Reader) {
 	utils.JSONLoad(s, r)
 }
-

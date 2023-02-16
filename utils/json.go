@@ -18,4 +18,3 @@ func JSONLoad(v any, r io.Reader) {
 		panic(err)
 	}
 }
-

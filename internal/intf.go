@@ -11,4 +11,3 @@ type Dumpable interface {
 type Loadable interface {
 	Load(io.Reader)
 }
-

@@ -19,7 +19,7 @@ type Delta struct {
 }
 
 const (
-	Add string = "add"
+	Add    string = "add"
 	Remove string = "remove"
 )
 
@@ -58,31 +58,31 @@ func (d *Delta) CompareSignatures(oldsig, newsig *Signature) {
 	newSigLen := len(newsig.Entries)
 
 	for _, item := range lcs {
-		for ;; oldSigIndex++ {
+		for ; ; oldSigIndex++ {
 			if oldsig.Entries[oldSigIndex].Sum == item {
 				oldSigIndex++
 				break
 			}
 
-			deltaEnt := &DeltaEntry {
+			deltaEnt := &DeltaEntry{
 				Action: Remove,
 				Offset: oldsig.Entries[oldSigIndex].Offset,
-				Size: oldsig.Entries[oldSigIndex].Size,
+				Size:   oldsig.Entries[oldSigIndex].Size,
 			}
 
 			d.Entries = append(d.Entries, deltaEnt)
 		}
 
-		for ;; newSigIndex++ {
+		for ; ; newSigIndex++ {
 			if newsig.Entries[newSigIndex].Sum == item {
 				newSigIndex++
 				break
 			}
 
-			deltaEnt := &DeltaEntry {
+			deltaEnt := &DeltaEntry{
 				Action: Add,
 				Offset: newsig.Entries[newSigIndex].Offset,
-				Size: newsig.Entries[newSigIndex].Size,
+				Size:   newsig.Entries[newSigIndex].Size,
 				// TODO: Add data
 			}
 
@@ -91,20 +91,20 @@ func (d *Delta) CompareSignatures(oldsig, newsig *Signature) {
 	}
 
 	for ; oldSigIndex < oldSigLen; oldSigIndex++ {
-		deltaEnt := &DeltaEntry {
+		deltaEnt := &DeltaEntry{
 			Action: Remove,
 			Offset: oldsig.Entries[oldSigIndex].Offset,
-			Size: oldsig.Entries[oldSigIndex].Size,
+			Size:   oldsig.Entries[oldSigIndex].Size,
 		}
 
 		d.Entries = append(d.Entries, deltaEnt)
 	}
 
 	for ; newSigIndex < newSigLen; newSigIndex++ {
-		deltaEnt := &DeltaEntry {
+		deltaEnt := &DeltaEntry{
 			Action: Add,
 			Offset: newsig.Entries[newSigIndex].Offset,
-			Size: newsig.Entries[newSigIndex].Size,
+			Size:   newsig.Entries[newSigIndex].Size,
 			// TODO: Add data
 		}
 

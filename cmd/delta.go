@@ -10,8 +10,8 @@ import (
 )
 
 type DeltaCmdOpenFiles struct {
-	inFile *os.File
-	sigFile *os.File
+	inFile    *os.File
+	sigFile   *os.File
 	deltaFile *os.File
 }
 

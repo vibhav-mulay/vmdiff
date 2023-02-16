@@ -11,7 +11,7 @@ import (
 )
 
 type SignatureCmdOpenFiles struct {
-	inFile *os.File
+	inFile  *os.File
 	sigFile *os.File
 }
 
