@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"io"
 	"log"
 	"os"
 
@@ -11,6 +10,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type SignatureCmdOpenFiles struct {
+	inFile *os.File
+	sigFile *os.File
+}
+
 var signatureCmd = &cobra.Command{
 	Use:   "signature",
 	Short: "Generate signature file.",
@@ -19,14 +23,14 @@ var signatureCmd = &cobra.Command{
 }
 
 var sigOpts = struct {
-	infileStr  string
+	inFileStr  string
 	sigFileStr string
 	chunkerStr string
 }{}
 
 func init() {
 	RootCmd.AddCommand(signatureCmd)
-	signatureCmd.Flags().StringVarP(&sigOpts.infileStr, "in", "i", "",
+	signatureCmd.Flags().StringVarP(&sigOpts.inFileStr, "in", "i", "",
 		"Input file path")
 	signatureCmd.MarkFlagRequired("in")
 	signatureCmd.Flags().StringVarP(&sigOpts.sigFileStr, "signature-file", "s", "",
@@ -36,35 +40,39 @@ func init() {
 }
 
 func doSignature(cmd *cobra.Command, args []string) error {
-	infile, outfile, err := doValidateFileParams()
+	files, err := validateSigCmdFileParams()
 	if err != nil {
 		return err
 	}
+	defer closeSigCmdOpenFiles(files)
 
 	log.Printf("Initializing chunker: %s\n", sigOpts.chunkerStr)
-	chunker, err := chunker.GetChunker(sigOpts.chunkerStr, infile)
+	chunker, err := chunker.GetChunker(sigOpts.chunkerStr, files.inFile)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Generating signature\n")
-	sfile, err := internal.GenerateSignature(chunker)
+	log.Println("Generating signature")
+	signature, err := internal.GenerateSignature(chunker)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Writing signature to file\n")
-	sfile.Dump(outfile)
+	log.Println("Writing signature to file")
+	signature.Dump(files.sigFile)
 
 	return nil
 }
 
-func doValidateFileParams() (io.Reader, io.Writer, error) {
-	log.Printf("Opening input file: %s\n", sigOpts.infileStr)
-	ifile, err := os.Open(sigOpts.infileStr)
+func validateSigCmdFileParams() (*SignatureCmdOpenFiles, error) {
+	files := &SignatureCmdOpenFiles{}
+
+	log.Printf("Opening input file: %s\n", sigOpts.inFileStr)
+	ifile, err := os.Open(sigOpts.inFileStr)
 	if err != nil {
-		return nil, nil, err
+		return files, err
 	}
+	files.inFile = ifile
 
 	ofile := os.Stdout
 	if sigOpts.sigFileStr != "" {
@@ -73,9 +81,20 @@ func doValidateFileParams() (io.Reader, io.Writer, error) {
 		log.Printf("Creating signature file: %s\n", sigOpts.sigFileStr)
 		ofile, err = os.OpenFile(sigOpts.sigFileStr, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 		if err != nil {
-			return nil, nil, err
+			return files, err
 		}
 	}
+	files.sigFile = ofile
 
-	return ifile, ofile, nil
+	return files, nil
+}
+
+func closeSigCmdOpenFiles(files *SignatureCmdOpenFiles) {
+	if files.inFile != nil {
+		files.inFile.Close()
+	}
+
+	if files.sigFile != nil {
+		files.sigFile.Close()
+	}
 }
