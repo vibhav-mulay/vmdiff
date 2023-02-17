@@ -3,11 +3,11 @@ syntax = "proto3";
 option go_package = "github.com/vibhav-mulay/vmdiff/internal";
 
 message DeltaEntry {
-	string action = 1;
-	int64  offset = 2;
-	int64  size   = 3;
-	bytes  data   = 4;
-	string sum    = 5;
+	string action     = 1;
+	int64  offset     = 2;
+	int64  size       = 3;
+	bytes  data       = 4;
+	int64  old_offset = 5;
 }
 
 message EntryHeader {

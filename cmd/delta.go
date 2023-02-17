@@ -36,7 +36,7 @@ func init() {
 	deltaCmd.MarkFlagRequired("in")
 	deltaCmd.Flags().StringVarP(&deltaOpts.sigFileStr, "signature-file", "s", "",
 		"Signature file path")
-	deltaCmd.MarkFlagRequired("in")
+	deltaCmd.MarkFlagRequired("signature-file")
 	deltaCmd.Flags().StringVarP(&deltaOpts.deltaFileStr, "delta-file", "d", "",
 		"Delta file path")
 }
@@ -56,8 +56,10 @@ func doDelta(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	delta := internal.NewDeltaGenerator(files.inFile, files.deltaFile)
+
 	log.Println("Generating delta")
-	_, err = internal.GenerateDelta(ctx, files.inFile, signature, files.deltaFile)
+	err = delta.GenerateDelta(ctx, signature)
 	if err != nil {
 		return err
 	}

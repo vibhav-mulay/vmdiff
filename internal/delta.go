@@ -11,103 +11,81 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Delta struct {
-	infile       *os.File
-	deltafile    *os.File
+type DeltaGenerator struct {
+	inFile       *os.File
+	deltaFile    *os.File
 	writeCh      chan *DeltaEntry
 	dumpComplete chan struct{}
 }
 
 const (
-	Add    string = "add"
-	Remove string = "remove"
-	Copy   string = "copy"
+	Add  string = "add"
+	Copy string = "copy"
 )
 
-func EmptyDelta(infile, deltafile *os.File) *Delta {
-	return &Delta{
-		infile:       infile,
-		deltafile:    deltafile,
+func NewDeltaGenerator(infile, deltafile *os.File) *DeltaGenerator {
+	return &DeltaGenerator{
+		inFile:       infile,
+		deltaFile:    deltafile,
 		writeCh:      make(chan *DeltaEntry, 20),
 		dumpComplete: make(chan struct{}),
 	}
 }
 
-func GenerateDelta(ctx context.Context, infile *os.File, signature *Signature, deltafile *os.File) (*Delta, error) {
+func (d *DeltaGenerator) GenerateDelta(ctx context.Context, signature *Signature) error {
 	log.Printf("Initializing chunker: %s", signature.Chunker)
-	chunker, err := chunker.GetChunker(signature.Chunker, infile)
+	chunker, err := chunker.GetChunker(signature.Chunker, d.inFile)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	newsignature, err := GenerateSignature(ctx, chunker)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	delta := EmptyDelta(infile, deltafile)
 
 	log.Println("Starting delta write to file goroutine")
-	go delta.Dump(ctx)
+	go d.StartDump(ctx)
 
-	err = delta.CompareSignatures(ctx, signature, newsignature)
+	err = d.CompareSignatures(ctx, signature, newsignature)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return delta, nil
+	return nil
 }
 
-func (d *Delta) CompareSignatures(ctx context.Context, oldsig, newsig *Signature) error {
+func (d *DeltaGenerator) CompareSignatures(ctx context.Context, oldsig, newsig *Signature) error {
 	var err error
 
 	lcs := utils.DetermineLCS(oldsig.SumList, newsig.SumList)
 	log.Printf("LCS: %v", lcs)
 
-	oldSigIndex := 0
-	oldSigLen := len(oldsig.Entries)
 	newSigIndex := 0
 	newSigLen := len(newsig.Entries)
 
 	var deltaEnt *DeltaEntry
 
 	for _, item := range lcs {
-		for ; ; oldSigIndex++ {
-			if oldsig.Entries[oldSigIndex].Sum == item {
-				oldSigIndex++
-				break
-			}
-
-			deltaEnt = d.DeltaRemoveEntry(oldsig.Entries[oldSigIndex])
-
-			d.writeCh <- deltaEnt
-		}
-
 		for ; ; newSigIndex++ {
-			if newsig.Entries[newSigIndex].Sum == item {
-				newSigIndex++
-				break
-			}
-
-			if oldsig.SumExists(newsig.Entries[newSigIndex].Sum) {
-				deltaEnt = d.DeltaCopyEntry(newsig.Entries[newSigIndex])
+			if found, i := oldsig.SumExists(newsig.Entries[newSigIndex].Sum); found {
+				deltaEnt = d.DeltaCopyEntry(newsig.Entries[newSigIndex], oldsig.Entries[i])
 			} else {
 				deltaEnt = d.DeltaAddEntry(newsig.Entries[newSigIndex])
 			}
 
 			d.writeCh <- deltaEnt
+
+			if newsig.Entries[newSigIndex].Sum == item {
+				newSigIndex++
+				break
+			}
 		}
 	}
 
-	for ; oldSigIndex < oldSigLen; oldSigIndex++ {
-		deltaEnt = d.DeltaRemoveEntry(oldsig.Entries[oldSigIndex])
-
-		d.writeCh <- deltaEnt
-	}
-
 	for ; newSigIndex < newSigLen; newSigIndex++ {
-		if oldsig.SumExists(newsig.Entries[newSigIndex].Sum) {
-			deltaEnt = d.DeltaCopyEntry(newsig.Entries[newSigIndex])
+		if found, i := oldsig.SumExists(newsig.Entries[newSigIndex].Sum); found {
+			deltaEnt = d.DeltaCopyEntry(newsig.Entries[newSigIndex], oldsig.Entries[i])
 		} else {
 			deltaEnt = d.DeltaAddEntry(newsig.Entries[newSigIndex])
 		}
@@ -120,7 +98,7 @@ func (d *Delta) CompareSignatures(ctx context.Context, oldsig, newsig *Signature
 	return err
 }
 
-func (d *Delta) Dump(ctx context.Context) {
+func (d *DeltaGenerator) StartDump(ctx context.Context) {
 	defer func() {
 		d.dumpComplete <- struct{}{}
 	}()
@@ -130,7 +108,7 @@ func (d *Delta) Dump(ctx context.Context) {
 	}
 }
 
-func (d *Delta) WriteEntry(entry *DeltaEntry) {
+func (d *DeltaGenerator) WriteEntry(entry *DeltaEntry) {
 	data, err := proto.Marshal(entry)
 	if err != nil {
 		panic(err)
@@ -147,58 +125,46 @@ func (d *Delta) WriteEntry(entry *DeltaEntry) {
 		panic(err)
 	}
 
-	_, err = d.deltafile.Write(header)
+	_, err = d.deltaFile.Write(header)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = d.deltafile.Write(data)
+	_, err = d.deltaFile.Write(data)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (d *Delta) DeltaRemoveEntry(sigEnt *SigEntry) *DeltaEntry {
-	deltaEnt := &DeltaEntry{
-		Action: Remove,
-		Offset: sigEnt.Offset,
-		Size:   sigEnt.Size,
-	}
-
-	return deltaEnt
-}
-
-func (d *Delta) DeltaAddEntry(sigEnt *SigEntry) *DeltaEntry {
+func (d *DeltaGenerator) DeltaAddEntry(sigEnt *SigEntry) *DeltaEntry {
 	deltaEnt := &DeltaEntry{
 		Action: Add,
 		Offset: sigEnt.Offset,
 		Size:   sigEnt.Size,
+		Data:   d.DataAt(sigEnt.Offset, sigEnt.Size),
 	}
-
-	deltaEnt.Data = d.DataAt(deltaEnt.Offset, deltaEnt.Size)
 
 	return deltaEnt
 }
 
-func (d *Delta) DeltaCopyEntry(sigEnt *SigEntry) *DeltaEntry {
+func (d *DeltaGenerator) DeltaCopyEntry(sigEnt, sigEntOld *SigEntry) *DeltaEntry {
 	deltaEnt := &DeltaEntry{
-		Action: Copy,
-		Offset: sigEnt.Offset,
-		Size:   sigEnt.Size,
+		Action:    Copy,
+		Offset:    sigEnt.Offset,
+		Size:      sigEnt.Size,
+		OldOffset: sigEntOld.Offset,
 	}
-
-	deltaEnt.Sum = sigEnt.Sum
 
 	return deltaEnt
 }
 
-func (d *Delta) DataAt(offset, size int64) []byte {
+func (d *DeltaGenerator) DataAt(offset, size int64) []byte {
 	data := make([]byte, size)
 
-	_, err := d.infile.ReadAt(data, offset)
+	_, err := d.inFile.ReadAt(data, offset)
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("Name=%s Fd=%d Offset=%d Size=%d", d.infile.Name(), d.infile.Fd(), offset, size)
+
 	return data
 }

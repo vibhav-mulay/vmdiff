@@ -60,7 +60,7 @@ func LoadSignature(ctx context.Context, r io.Reader) (*Signature, error) {
 	s.Load(ctx, r)
 
 	s.SumList = func() []string {
-		sumList := make([]string, len(s.Entries))
+		sumList := make([]string, 0, len(s.Entries))
 		for _, entry := range s.Entries {
 			sumList = append(sumList, entry.Sum)
 		}
@@ -70,14 +70,14 @@ func LoadSignature(ctx context.Context, r io.Reader) (*Signature, error) {
 	return s, nil
 }
 
-func (s *Signature) SumExists(sum string) bool {
-	for _, item := range s.SumList {
+func (s *Signature) SumExists(sum string) (bool, int) {
+	for i, item := range s.SumList {
 		if item == sum {
-			return true
+			return true, i
 		}
 	}
 
-	return false
+	return false, -1
 }
 
 func (s *Signature) Dump(ctx context.Context, w io.Writer) {
