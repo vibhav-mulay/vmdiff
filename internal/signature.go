@@ -72,6 +72,16 @@ func LoadSignature(r io.Reader) (*Signature, error) {
 	return s, nil
 }
 
+func (s *Signature) SumExists(sum string) bool {
+	for _, item := range s.SumList {
+		if item == sum {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s *Signature) Dump(w io.Writer) {
 	utils.JSONDump(s, w)
 }

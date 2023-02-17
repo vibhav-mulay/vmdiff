@@ -14,6 +14,7 @@ type DeltaEntry struct {
 	Offset int64  `json:"offset"`
 	Size   int64  `json:"size,omitempty"`
 	Data   []byte `json:"data"`
+	Sum    string `json:"checksum,omitempty"`
 }
 
 type Delta struct {
@@ -23,6 +24,7 @@ type Delta struct {
 const (
 	Add    string = "add"
 	Remove string = "remove"
+	Copy   string = "copy"
 )
 
 var _ Dumpable = &Delta{}
@@ -85,17 +87,26 @@ func (d *Delta) CompareSignatures(infile *os.File, oldsig, newsig *Signature) er
 				break
 			}
 
+			action := Add
+			if oldsig.SumExists(newsig.Entries[newSigIndex].Sum) {
+				action = Copy
+			}
+
 			deltaEnt := &DeltaEntry{
-				Action: Add,
+				Action: action,
 				Offset: newsig.Entries[newSigIndex].Offset,
 				Size:   newsig.Entries[newSigIndex].Size,
 			}
 
-			deltaEnt.Data, err = d.DataAt(infile,
-				deltaEnt.Offset,
-				deltaEnt.Size)
-			if err != nil {
-				return err
+			if action != Copy {
+				deltaEnt.Data, err = d.DataAt(infile,
+					deltaEnt.Offset,
+					deltaEnt.Size)
+				if err != nil {
+					return err
+				}
+			} else {
+				deltaEnt.Sum = newsig.Entries[newSigIndex].Sum
 			}
 
 			d.Entries = append(d.Entries, deltaEnt)
@@ -113,17 +124,26 @@ func (d *Delta) CompareSignatures(infile *os.File, oldsig, newsig *Signature) er
 	}
 
 	for ; newSigIndex < newSigLen; newSigIndex++ {
+		action := Add
+		if oldsig.SumExists(newsig.Entries[newSigIndex].Sum) {
+			action = Copy
+		}
+
 		deltaEnt := &DeltaEntry{
-			Action: Add,
+			Action: action,
 			Offset: newsig.Entries[newSigIndex].Offset,
 			Size:   newsig.Entries[newSigIndex].Size,
 		}
 
-		deltaEnt.Data, err = d.DataAt(infile,
-			deltaEnt.Offset,
-			deltaEnt.Size)
-		if err != nil {
-			return err
+		if action != Copy {
+			deltaEnt.Data, err = d.DataAt(infile,
+				deltaEnt.Offset,
+				deltaEnt.Size)
+			if err != nil {
+				return err
+			}
+		} else {
+			deltaEnt.Sum = newsig.Entries[newSigIndex].Sum
 		}
 
 		d.Entries = append(d.Entries, deltaEnt)

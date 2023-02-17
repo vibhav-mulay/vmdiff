@@ -16,7 +16,7 @@ var _ Chunker = &FastCDCChunker{}
 
 func NewFastCDCChunker(r io.Reader) (Chunker, error) {
 	fc, err := fastcdc.NewChunker(r, fastcdc.Options{
-		AverageSize: 1024 * 1024, // target 1 MiB average chunk size
+		AverageSize: 1024 * 1024,
 	})
 	if err != nil {
 		return nil, err
