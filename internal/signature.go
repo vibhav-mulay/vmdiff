@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 	"io"
@@ -22,14 +23,11 @@ type Signature struct {
 	SumList []string    `json:"-"`
 }
 
-var _ Dumpable = &Signature{}
-var _ Loadable = &Signature{}
-
 func EmptySignature() *Signature {
 	return &Signature{}
 }
 
-func GenerateSignature(chunker chunker.Chunker) (*Signature, error) {
+func GenerateSignature(ctx context.Context, chunker chunker.Chunker) (*Signature, error) {
 	sign := EmptySignature()
 	sign.Chunker = chunker.Name()
 
@@ -57,9 +55,9 @@ func GenerateSignature(chunker chunker.Chunker) (*Signature, error) {
 	return sign, nil
 }
 
-func LoadSignature(r io.Reader) (*Signature, error) {
+func LoadSignature(ctx context.Context, r io.Reader) (*Signature, error) {
 	s := EmptySignature()
-	s.Load(r)
+	s.Load(ctx, r)
 
 	s.SumList = func() []string {
 		sumList := make([]string, len(s.Entries))
@@ -82,10 +80,10 @@ func (s *Signature) SumExists(sum string) bool {
 	return false
 }
 
-func (s *Signature) Dump(w io.Writer) {
-	utils.JSONDump(s, w)
+func (s *Signature) Dump(ctx context.Context, w io.Writer) {
+	utils.Dump(s, w)
 }
 
-func (s *Signature) Load(r io.Reader) {
-	utils.JSONLoad(s, r)
+func (s *Signature) Load(ctx context.Context, r io.Reader) {
+	utils.Load(s, r)
 }

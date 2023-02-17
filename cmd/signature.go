@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -46,6 +47,8 @@ func doSignature(cmd *cobra.Command, args []string) error {
 	}
 	defer closeSigCmdOpenFiles(files)
 
+	ctx := context.Background()
+
 	log.Printf("Initializing chunker: %s\n", sigOpts.chunkerStr)
 	chunker, err := chunker.GetChunker(sigOpts.chunkerStr, files.inFile)
 	if err != nil {
@@ -53,13 +56,13 @@ func doSignature(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Println("Generating signature")
-	signature, err := internal.GenerateSignature(chunker)
+	signature, err := internal.GenerateSignature(ctx, chunker)
 	if err != nil {
 		return err
 	}
 
 	log.Println("Writing signature to file")
-	signature.Dump(files.sigFile)
+	signature.Dump(ctx, files.sigFile)
 
 	return nil
 }

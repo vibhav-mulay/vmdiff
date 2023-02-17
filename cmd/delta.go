@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -47,20 +48,19 @@ func doDelta(cmd *cobra.Command, args []string) error {
 	}
 	defer closeDeltaCmdOpenFiles(files)
 
+	ctx := context.Background()
+
 	log.Println("Loading signature")
-	signature, err := internal.LoadSignature(files.sigFile)
+	signature, err := internal.LoadSignature(ctx, files.sigFile)
 	if err != nil {
 		return err
 	}
 
 	log.Println("Generating delta")
-	delta, err := internal.GenerateDelta(files.inFile, signature)
+	_, err = internal.GenerateDelta(ctx, files.inFile, signature, files.deltaFile)
 	if err != nil {
 		return err
 	}
-
-	log.Println("Writing delta to file")
-	delta.Dump(files.deltaFile)
 
 	return nil
 }

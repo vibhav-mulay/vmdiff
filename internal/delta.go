@@ -1,24 +1,21 @@
 package internal
 
 import (
-	"io"
+	"context"
 	"log"
 	"os"
 
 	"vmdiff/chunker"
 	"vmdiff/utils"
+
+	"google.golang.org/protobuf/proto"
 )
 
-type DeltaEntry struct {
-	Action string `json:"action"`
-	Offset int64  `json:"offset"`
-	Size   int64  `json:"size,omitempty"`
-	Data   []byte `json:"data"`
-	Sum    string `json:"checksum,omitempty"`
-}
-
 type Delta struct {
-	Entries []*DeltaEntry `json:"entries,omitempty"`
+	infile       *os.File
+	deltafile    *os.File
+	writeCh      chan *DeltaEntry
+	dumpComplete chan struct{}
 }
 
 const (
@@ -27,26 +24,33 @@ const (
 	Copy   string = "copy"
 )
 
-var _ Dumpable = &Delta{}
-
-func EmptyDelta() *Delta {
-	return &Delta{}
+func EmptyDelta(infile, deltafile *os.File) *Delta {
+	return &Delta{
+		infile:       infile,
+		deltafile:    deltafile,
+		writeCh:      make(chan *DeltaEntry, 20),
+		dumpComplete: make(chan struct{}),
+	}
 }
 
-func GenerateDelta(infile *os.File, signature *Signature) (*Delta, error) {
+func GenerateDelta(ctx context.Context, infile *os.File, signature *Signature, deltafile *os.File) (*Delta, error) {
 	log.Printf("Initializing chunker: %s", signature.Chunker)
 	chunker, err := chunker.GetChunker(signature.Chunker, infile)
 	if err != nil {
 		return nil, err
 	}
 
-	newsignature, err := GenerateSignature(chunker)
+	newsignature, err := GenerateSignature(ctx, chunker)
 	if err != nil {
 		return nil, err
 	}
 
-	delta := EmptyDelta()
-	err = delta.CompareSignatures(infile, signature, newsignature)
+	delta := EmptyDelta(infile, deltafile)
+
+	log.Println("Starting delta write to file goroutine")
+	go delta.Dump(ctx)
+
+	err = delta.CompareSignatures(ctx, signature, newsignature)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +58,7 @@ func GenerateDelta(infile *os.File, signature *Signature) (*Delta, error) {
 	return delta, nil
 }
 
-func (d *Delta) CompareSignatures(infile *os.File, oldsig, newsig *Signature) error {
+func (d *Delta) CompareSignatures(ctx context.Context, oldsig, newsig *Signature) error {
 	var err error
 
 	lcs := utils.DetermineLCS(oldsig.SumList, newsig.SumList)
@@ -65,6 +69,8 @@ func (d *Delta) CompareSignatures(infile *os.File, oldsig, newsig *Signature) er
 	newSigIndex := 0
 	newSigLen := len(newsig.Entries)
 
+	var deltaEnt *DeltaEntry
+
 	for _, item := range lcs {
 		for ; ; oldSigIndex++ {
 			if oldsig.Entries[oldSigIndex].Sum == item {
@@ -72,13 +78,9 @@ func (d *Delta) CompareSignatures(infile *os.File, oldsig, newsig *Signature) er
 				break
 			}
 
-			deltaEnt := &DeltaEntry{
-				Action: Remove,
-				Offset: oldsig.Entries[oldSigIndex].Offset,
-				Size:   oldsig.Entries[oldSigIndex].Size,
-			}
+			deltaEnt = d.DeltaRemoveEntry(oldsig.Entries[oldSigIndex])
 
-			d.Entries = append(d.Entries, deltaEnt)
+			d.writeCh <- deltaEnt
 		}
 
 		for ; ; newSigIndex++ {
@@ -87,82 +89,116 @@ func (d *Delta) CompareSignatures(infile *os.File, oldsig, newsig *Signature) er
 				break
 			}
 
-			action := Add
 			if oldsig.SumExists(newsig.Entries[newSigIndex].Sum) {
-				action = Copy
-			}
-
-			deltaEnt := &DeltaEntry{
-				Action: action,
-				Offset: newsig.Entries[newSigIndex].Offset,
-				Size:   newsig.Entries[newSigIndex].Size,
-			}
-
-			if action != Copy {
-				deltaEnt.Data, err = d.DataAt(infile,
-					deltaEnt.Offset,
-					deltaEnt.Size)
-				if err != nil {
-					return err
-				}
+				deltaEnt = d.DeltaCopyEntry(newsig.Entries[newSigIndex])
 			} else {
-				deltaEnt.Sum = newsig.Entries[newSigIndex].Sum
+				deltaEnt = d.DeltaAddEntry(newsig.Entries[newSigIndex])
 			}
 
-			d.Entries = append(d.Entries, deltaEnt)
+			d.writeCh <- deltaEnt
 		}
 	}
 
 	for ; oldSigIndex < oldSigLen; oldSigIndex++ {
-		deltaEnt := &DeltaEntry{
-			Action: Remove,
-			Offset: oldsig.Entries[oldSigIndex].Offset,
-			Size:   oldsig.Entries[oldSigIndex].Size,
-		}
+		deltaEnt = d.DeltaRemoveEntry(oldsig.Entries[oldSigIndex])
 
-		d.Entries = append(d.Entries, deltaEnt)
+		d.writeCh <- deltaEnt
 	}
 
 	for ; newSigIndex < newSigLen; newSigIndex++ {
-		action := Add
 		if oldsig.SumExists(newsig.Entries[newSigIndex].Sum) {
-			action = Copy
-		}
-
-		deltaEnt := &DeltaEntry{
-			Action: action,
-			Offset: newsig.Entries[newSigIndex].Offset,
-			Size:   newsig.Entries[newSigIndex].Size,
-		}
-
-		if action != Copy {
-			deltaEnt.Data, err = d.DataAt(infile,
-				deltaEnt.Offset,
-				deltaEnt.Size)
-			if err != nil {
-				return err
-			}
+			deltaEnt = d.DeltaCopyEntry(newsig.Entries[newSigIndex])
 		} else {
-			deltaEnt.Sum = newsig.Entries[newSigIndex].Sum
+			deltaEnt = d.DeltaAddEntry(newsig.Entries[newSigIndex])
 		}
 
-		d.Entries = append(d.Entries, deltaEnt)
+		d.writeCh <- deltaEnt
 	}
 
+	close(d.writeCh)
+	<-d.dumpComplete
 	return err
 }
 
-func (d *Delta) Dump(w io.Writer) {
-	utils.JSONDump(d, w)
+func (d *Delta) Dump(ctx context.Context) {
+	defer func() {
+		d.dumpComplete <- struct{}{}
+	}()
+
+	for entry := range d.writeCh {
+		d.WriteEntry(entry)
+	}
 }
 
-func (d *Delta) DataAt(infile *os.File, offset, size int64) ([]byte, error) {
+func (d *Delta) WriteEntry(entry *DeltaEntry) {
+	data, err := proto.Marshal(entry)
+	if err != nil {
+		panic(err)
+	}
+
+	dataLen := len(data)
+
+	eheader := &EntryHeader{
+		Size: uint64(dataLen),
+	}
+
+	header, err := proto.Marshal(eheader)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = d.deltafile.Write(header)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = d.deltafile.Write(data)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (d *Delta) DeltaRemoveEntry(sigEnt *SigEntry) *DeltaEntry {
+	deltaEnt := &DeltaEntry{
+		Action: Remove,
+		Offset: sigEnt.Offset,
+		Size:   sigEnt.Size,
+	}
+
+	return deltaEnt
+}
+
+func (d *Delta) DeltaAddEntry(sigEnt *SigEntry) *DeltaEntry {
+	deltaEnt := &DeltaEntry{
+		Action: Add,
+		Offset: sigEnt.Offset,
+		Size:   sigEnt.Size,
+	}
+
+	deltaEnt.Data = d.DataAt(deltaEnt.Offset, deltaEnt.Size)
+
+	return deltaEnt
+}
+
+func (d *Delta) DeltaCopyEntry(sigEnt *SigEntry) *DeltaEntry {
+	deltaEnt := &DeltaEntry{
+		Action: Copy,
+		Offset: sigEnt.Offset,
+		Size:   sigEnt.Size,
+	}
+
+	deltaEnt.Sum = sigEnt.Sum
+
+	return deltaEnt
+}
+
+func (d *Delta) DataAt(offset, size int64) []byte {
 	data := make([]byte, size)
 
-	_, err := infile.ReadAt(data, offset)
+	_, err := d.infile.ReadAt(data, offset)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	log.Printf("Name=%s Fd=%d Offset=%d Size=%d", infile.Name(), infile.Fd(), offset, size)
-	return data, nil
+	log.Printf("Name=%s Fd=%d Offset=%d Size=%d", d.infile.Name(), d.infile.Fd(), offset, size)
+	return data
 }
