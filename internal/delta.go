@@ -3,6 +3,7 @@ package internal
 import (
 	"io"
 	"log"
+	"os"
 
 	"vmdiff/chunker"
 	"vmdiff/utils"
@@ -10,8 +11,9 @@ import (
 
 type DeltaEntry struct {
 	Action string `json:"action"`
-	Offset uint64 `json:"offset"`
-	Size   uint64 `json:"size,omitempty"`
+	Offset int64  `json:"offset"`
+	Size   int64  `json:"size,omitempty"`
+	Data   []byte `json:"data"`
 }
 
 type Delta struct {
@@ -29,7 +31,7 @@ func EmptyDelta() *Delta {
 	return &Delta{}
 }
 
-func GenerateDelta(infile io.Reader, signature *Signature) (*Delta, error) {
+func GenerateDelta(infile *os.File, signature *Signature) (*Delta, error) {
 	log.Printf("Initializing chunker: %s", signature.Chunker)
 	chunker, err := chunker.GetChunker(signature.Chunker, infile)
 	if err != nil {
@@ -42,14 +44,18 @@ func GenerateDelta(infile io.Reader, signature *Signature) (*Delta, error) {
 	}
 
 	delta := EmptyDelta()
-	delta.CompareSignatures(signature, newsignature)
+	err = delta.CompareSignatures(infile, signature, newsignature)
+	if err != nil {
+		return nil, err
+	}
 
 	return delta, nil
 }
 
-func (d *Delta) CompareSignatures(oldsig, newsig *Signature) {
-	lcs := utils.DetermineLCS(oldsig.SumList, newsig.SumList)
+func (d *Delta) CompareSignatures(infile *os.File, oldsig, newsig *Signature) error {
+	var err error
 
+	lcs := utils.DetermineLCS(oldsig.SumList, newsig.SumList)
 	log.Printf("LCS: %v", lcs)
 
 	oldSigIndex := 0
@@ -83,7 +89,13 @@ func (d *Delta) CompareSignatures(oldsig, newsig *Signature) {
 				Action: Add,
 				Offset: newsig.Entries[newSigIndex].Offset,
 				Size:   newsig.Entries[newSigIndex].Size,
-				// TODO: Add data
+			}
+
+			deltaEnt.Data, err = d.DataAt(infile,
+				deltaEnt.Offset,
+				deltaEnt.Size)
+			if err != nil {
+				return err
 			}
 
 			d.Entries = append(d.Entries, deltaEnt)
@@ -105,13 +117,32 @@ func (d *Delta) CompareSignatures(oldsig, newsig *Signature) {
 			Action: Add,
 			Offset: newsig.Entries[newSigIndex].Offset,
 			Size:   newsig.Entries[newSigIndex].Size,
-			// TODO: Add data
+		}
+
+		deltaEnt.Data, err = d.DataAt(infile,
+			deltaEnt.Offset,
+			deltaEnt.Size)
+		if err != nil {
+			return err
 		}
 
 		d.Entries = append(d.Entries, deltaEnt)
 	}
+
+	return err
 }
 
 func (d *Delta) Dump(w io.Writer) {
 	utils.JSONDump(d, w)
+}
+
+func (d *Delta) DataAt(infile *os.File, offset, size int64) ([]byte, error) {
+	data := make([]byte, size)
+
+	_, err := infile.ReadAt(data, offset)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("Name=%s Fd=%d Offset=%d Size=%d", infile.Name(), infile.Fd(), offset, size)
+	return data, nil
 }
