@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "github.com/vibhav-mulay/vmdiff/internal";
+
+message SigEntry {
+	string   sum = 1;
+	int64   size = 2;
+	int64 offset = 3;
+}
+
+message SigProto {
+	string chunker = 1;
+	repeated SigEntry entries = 2;
+}
+

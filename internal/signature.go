@@ -8,19 +8,13 @@ import (
 	"log"
 
 	"vmdiff/chunker"
-	"vmdiff/utils"
+
+	"google.golang.org/protobuf/proto"
 )
 
-type SigEntry struct {
-	Sum    string `json:"checksum,omitempty"`
-	Size   int64  `json:"size,omitempty"`
-	Offset int64  `json:"offset"`
-}
-
 type Signature struct {
-	Chunker string      `json:"chunker,omitempty"`
-	Entries []*SigEntry `json:"entries,omitempty"`
-	SumList []string    `json:"-"`
+	SigProto
+	SumList []string `json:"-"`
 }
 
 func EmptySignature() *Signature {
@@ -81,9 +75,25 @@ func (s *Signature) SumExists(sum string) (bool, int) {
 }
 
 func (s *Signature) Dump(ctx context.Context, w io.Writer) {
-	utils.Dump(s, w)
+	data, err := proto.Marshal(s)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = w.Write(data)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *Signature) Load(ctx context.Context, r io.Reader) {
-	utils.Load(s, r)
+	data, err := io.ReadAll(r)
+	if err != nil {
+		panic(err)
+	}
+
+	err = proto.Unmarshal(data, s)
+	if err != nil {
+		panic(err)
+	}
 }
