@@ -12,8 +12,8 @@ import (
 
 type SigEntry struct {
 	Sum    string `json:"checksum,omitempty"`
-	Size   uint64 `json:"size,omitempty"`
-	Offset uint64 `json:"offset"`
+	Size   int64  `json:"size,omitempty"`
+	Offset int64  `json:"offset"`
 }
 
 type Signature struct {
@@ -44,8 +44,8 @@ func GenerateSignature(chunker chunker.Chunker) (*Signature, error) {
 
 		sigEnt := &SigEntry{
 			Sum:    fmt.Sprintf("%x", md5.Sum(chunk.Data)),
-			Size:   uint64(chunk.Length),
-			Offset: uint64(chunk.Offset),
+			Size:   int64(chunk.Size),
+			Offset: int64(chunk.Offset),
 		}
 
 		sign.Entries = append(sign.Entries, sigEnt)

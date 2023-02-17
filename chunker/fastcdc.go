@@ -1,16 +1,15 @@
 package chunker
 
 import (
-	//	"fmt"
 	"io"
 
 	fastcdc "github.com/jotfs/fastcdc-go"
 )
 
-const name = "fastcdc"
+const fastCDCName = "fastcdc"
 
 type FastCDCChunker struct {
-	fastcdc.Chunker
+	*fastcdc.Chunker
 }
 
 var _ Chunker = &FastCDCChunker{}
@@ -24,14 +23,24 @@ func NewFastCDCChunker(r io.Reader) (Chunker, error) {
 	}
 
 	return &FastCDCChunker{
-		Chunker: *fc,
+		Chunker: fc,
 	}, nil
 }
 
 func (fc *FastCDCChunker) Name() string {
-	return name
+	return fastCDCName
 }
 
-//func (fc *FastCDCChunker) Next() (*Chunk, error) {
-//	return &Chunk{}, nil
-//}
+func (fc *FastCDCChunker) Next() (*Chunk, error) {
+	chunk, err := fc.Chunker.Next()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Chunk{
+		Data:        chunk.Data,
+		Size:        int64(chunk.Length),
+		Offset:      int64(chunk.Offset),
+		Fingerprint: chunk.Fingerprint,
+	}, nil
+}

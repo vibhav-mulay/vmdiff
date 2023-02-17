@@ -36,7 +36,7 @@ func init() {
 	signatureCmd.Flags().StringVarP(&sigOpts.sigFileStr, "signature-file", "s", "",
 		"Signature file path")
 	signatureCmd.Flags().StringVarP(&sigOpts.chunkerStr, "chunker", "c", "fastcdc",
-		"Chunker to be used (fastcdc)")
+		"Chunker to be used (fastcdc, rabinfp)")
 }
 
 func doSignature(cmd *cobra.Command, args []string) error {
