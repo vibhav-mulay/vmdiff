@@ -34,10 +34,10 @@ func init() {
 	RootCmd.AddCommand(patchCmd)
 	patchCmd.Flags().StringVarP(&patchOpts.inFileStr, "in", "i", "",
 		"Input file path")
-	patchCmd.MarkFlagRequired("in")
+	_ = patchCmd.MarkFlagRequired("in")
 	patchCmd.Flags().StringVarP(&patchOpts.deltaFileStr, "delta-file", "d", "",
 		"Delta file path")
-	patchCmd.MarkFlagRequired("delta-file")
+	_ = patchCmd.MarkFlagRequired("delta-file")
 	patchCmd.Flags().StringVarP(&patchOpts.outFileStr, "out", "o", "",
 		"Output file path")
 	patchCmd.Flags().BoolVarP(&patchOpts.dryRun, "dry-run", "x", false,

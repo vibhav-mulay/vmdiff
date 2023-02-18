@@ -15,7 +15,6 @@ type DeltaPatcher struct {
 	outFile       OutputWriter
 	deltaFile     io.Reader
 	dryRun        bool
-	runningOffset int64
 
 	readCh chan *iproto.DeltaEntry
 }

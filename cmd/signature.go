@@ -33,7 +33,7 @@ func init() {
 	RootCmd.AddCommand(signatureCmd)
 	signatureCmd.Flags().StringVarP(&sigOpts.inFileStr, "in", "i", "",
 		"Input file path")
-	signatureCmd.MarkFlagRequired("in")
+	_ = signatureCmd.MarkFlagRequired("in")
 	signatureCmd.Flags().StringVarP(&sigOpts.sigFileStr, "signature-file", "s", "",
 		"Signature file path")
 	signatureCmd.Flags().StringVarP(&sigOpts.chunkerStr, "chunker", "c", "fastcdc",

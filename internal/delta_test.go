@@ -63,7 +63,9 @@ func TestDeltaGenerator(t *testing.T) {
 	assert.Nil(t, err)
 
 	chunker = testhelper.NewTestChunker(NewData, false)
+
 	newSign, err := GenerateSignature(ctx, chunker)
+	assert.Nil(t, err)
 
 	validator := testhelper.NewDeltaValidator(t, Change)
 

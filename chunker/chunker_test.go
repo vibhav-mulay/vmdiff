@@ -41,12 +41,12 @@ func TestGetChunker(t *testing.T) {
 			}
 			assert.Equal(t, chunker.Name(), tc.name)
 
-			chunk, err := chunker.Next()
+			chunk, _ := chunker.Next()
 			assert.Equal(t, TestData, string(chunk.Data))
 			assert.Equal(t, int64(0), chunk.Offset)
 			assert.Equal(t, int64(len(TestData)), chunk.Size)
 
-			chunk, err = chunker.Next()
+			chunk, _ = chunker.Next()
 			assert.Nil(t, chunk)
 			assert.Equal(t, err, io.EOF)
 		})

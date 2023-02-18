@@ -41,7 +41,7 @@ func TestSignature(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		t.Run(fmt.Sprintf("%s", tc.name), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			chunker := testhelper.NewTestChunker(tc.testdata, tc.erroneous)
 			ctx := context.Background()
 

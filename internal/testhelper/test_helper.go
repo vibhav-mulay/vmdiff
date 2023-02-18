@@ -67,7 +67,6 @@ func NewDeltaValidator(t *testing.T, v []*proto.DeltaEntry) *DeltaValidator {
 }
 
 func (d *DeltaValidator) StartDump(ctx context.Context, entryWriter func(io.Writer, *proto.DeltaEntry)) {
-	return
 }
 
 func (d *DeltaValidator) Dump(entry *proto.DeltaEntry) {

@@ -33,10 +33,10 @@ func init() {
 	RootCmd.AddCommand(deltaCmd)
 	deltaCmd.Flags().StringVarP(&deltaOpts.inFileStr, "in", "i", "",
 		"Input file path")
-	deltaCmd.MarkFlagRequired("in")
+	_ = deltaCmd.MarkFlagRequired("in")
 	deltaCmd.Flags().StringVarP(&deltaOpts.sigFileStr, "signature-file", "s", "",
 		"Signature file path")
-	deltaCmd.MarkFlagRequired("signature-file")
+	_ = deltaCmd.MarkFlagRequired("signature-file")
 	deltaCmd.Flags().StringVarP(&deltaOpts.deltaFileStr, "delta-file", "d", "",
 		"Delta file path")
 }
