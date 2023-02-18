@@ -54,14 +54,14 @@ func (t *TestChunker) Next() (chunk *chunker.Chunk, err error) {
 }
 
 type DeltaValidator struct {
-	t *testing.T
+	t           *testing.T
 	validations []*proto.DeltaEntry
-	index int
+	index       int
 }
 
 func NewDeltaValidator(t *testing.T, v []*proto.DeltaEntry) *DeltaValidator {
 	return &DeltaValidator{
-		t: t,
+		t:           t,
 		validations: v,
 	}
 }

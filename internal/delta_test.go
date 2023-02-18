@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"vmdiff/internal/testhelper"
 	"vmdiff/internal/proto"
+	"vmdiff/internal/testhelper"
 
 	"github.com/stretchr/testify/assert"
 	gproto "google.golang.org/protobuf/proto"
@@ -75,7 +75,6 @@ func TestDeltaGenerator(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-
 func TestWriteEntry(t *testing.T) {
 	buffer := bytes.NewBuffer(nil)
 
@@ -101,7 +100,7 @@ func TestWriteEntry(t *testing.T) {
 	deltaEntData := make([]byte, deltaEntSize)
 	deltaEnt := &proto.DeltaEntry{}
 
-	_, err = io.ReadFull(reader, deltaEntData)	
+	_, err = io.ReadFull(reader, deltaEntData)
 	assert.Nil(t, err)
 
 	err = gproto.Unmarshal(deltaEntData, deltaEnt)
@@ -109,7 +108,3 @@ func TestWriteEntry(t *testing.T) {
 
 	assert.Equal(t, true, gproto.Equal(entry, deltaEnt))
 }
-
-
-
-
