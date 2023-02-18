@@ -17,6 +17,8 @@ type Chunker interface {
 	Next() (*Chunk, error)
 }
 
+var ErrInvalidChunker = fmt.Errorf("Invalid chunker string")
+
 func GetChunker(cStr string, reader io.Reader) (Chunker, error) {
 	switch cStr {
 	case "fastcdc":
@@ -24,6 +26,6 @@ func GetChunker(cStr string, reader io.Reader) (Chunker, error) {
 	case "rabinfp":
 		return NewRabinFPChunker(reader)
 	default:
-		return nil, fmt.Errorf("Invalid chunker string: %s", cStr)
+		return nil, ErrInvalidChunker
 	}
 }

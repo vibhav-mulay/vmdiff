@@ -4,22 +4,21 @@ import (
 	"context"
 	"io"
 	"log"
-	"os"
 
 	"google.golang.org/protobuf/proto"
 )
 
 type DeltaPatcher struct {
-	inFile        *os.File
-	outFile       *os.File
-	deltaFile     *os.File
+	inFile        InputReader
+	outFile       OutputWriter
+	deltaFile     io.Reader
 	dryRun        bool
 	runningOffset int64
 
 	readCh chan *DeltaEntry
 }
 
-func NewDeltaPatcher(infile, outfile, deltafile *os.File, dryRun bool) *DeltaPatcher {
+func NewDeltaPatcher(infile InputReader, outfile OutputWriter, deltafile io.Reader, dryRun bool) *DeltaPatcher {
 	return &DeltaPatcher{
 		inFile:    infile,
 		outFile:   outfile,

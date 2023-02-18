@@ -23,7 +23,11 @@ fmt:
 
 .PHONY: test
 test:
-	go test ./...
+	go test ./... $(testargs)
+
+.PHONY: install
+install: fmt proto
+	go install
 
 .PHONY: all
 all: vmdiff test

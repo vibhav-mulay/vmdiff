@@ -36,8 +36,8 @@ func GenerateSignature(ctx context.Context, chunker chunker.Chunker) (*Signature
 
 		sigEnt := &SigEntry{
 			Sum:    fmt.Sprintf("%x", md5.Sum(chunk.Data)),
-			Size:   int64(chunk.Size),
-			Offset: int64(chunk.Offset),
+			Size:   chunk.Size,
+			Offset: chunk.Offset,
 		}
 
 		sign.Entries = append(sign.Entries, sigEnt)

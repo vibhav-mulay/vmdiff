@@ -2,8 +2,8 @@ package internal
 
 import (
 	"context"
+	"io"
 	"log"
-	"os"
 
 	"vmdiff/chunker"
 	"vmdiff/utils"
@@ -12,8 +12,8 @@ import (
 )
 
 type DeltaGenerator struct {
-	inFile       *os.File
-	deltaFile    *os.File
+	inFile       InputReader
+	deltaFile    io.Writer
 	writeCh      chan *DeltaEntry
 	dumpComplete chan struct{}
 }
@@ -23,7 +23,7 @@ const (
 	Copy string = "copy"
 )
 
-func NewDeltaGenerator(infile, deltafile *os.File) *DeltaGenerator {
+func NewDeltaGenerator(infile InputReader, deltafile io.Writer) *DeltaGenerator {
 	return &DeltaGenerator{
 		inFile:       infile,
 		deltaFile:    deltafile,

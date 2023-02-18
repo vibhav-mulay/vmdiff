@@ -6,7 +6,10 @@ import (
 	fastcdc "github.com/jotfs/fastcdc-go"
 )
 
-const fastCDCName = "fastcdc"
+const (
+	fastCDCName = "fastcdc"
+	AVG_CHUNK   = 256 << 10
+)
 
 type FastCDCChunker struct {
 	*fastcdc.Chunker
@@ -16,7 +19,7 @@ var _ Chunker = &FastCDCChunker{}
 
 func NewFastCDCChunker(r io.Reader) (Chunker, error) {
 	fc, err := fastcdc.NewChunker(r, fastcdc.Options{
-		AverageSize: 256 * 1024,
+		AverageSize: AVG_CHUNK,
 	})
 	if err != nil {
 		return nil, err
