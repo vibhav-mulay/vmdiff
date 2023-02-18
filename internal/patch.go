@@ -11,10 +11,10 @@ import (
 )
 
 type DeltaPatcher struct {
-	inFile        InputReader
-	outFile       OutputWriter
-	deltaFile     io.Reader
-	dryRun        bool
+	inFile    InputReader
+	outFile   OutputWriter
+	deltaFile io.Reader
+	dryRun    bool
 
 	readCh chan *iproto.DeltaEntry
 }
