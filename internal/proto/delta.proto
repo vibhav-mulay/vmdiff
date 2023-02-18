@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/vibhav-mulay/vmdiff/internal";
+option go_package = "github.com/vibhav-mulay/vmdiff/internal/proto";
 
 message DeltaEntry {
 	string action     = 1;

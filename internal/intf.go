@@ -1,6 +1,11 @@
 package internal
 
-import "io"
+import (
+	"context"
+	"io"
+
+	"vmdiff/internal/proto"
+)
 
 type InputReader interface {
 	io.Reader
@@ -10,4 +15,10 @@ type InputReader interface {
 type OutputWriter interface {
 	io.Writer
 	io.WriterAt
+}
+
+type DeltaDumper interface {
+	StartDump(context.Context, func(io.Writer, *proto.DeltaEntry))
+	Dump(*proto.DeltaEntry)
+	EndDump()
 }

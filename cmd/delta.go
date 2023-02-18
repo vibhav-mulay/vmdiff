@@ -56,7 +56,8 @@ func doDelta(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	delta := internal.NewDeltaGenerator(files.inFile, files.deltaFile)
+	dumper := internal.NewFileDeltaDumper(files.deltaFile)
+	delta := internal.NewDeltaGenerator(files.inFile, dumper)
 
 	log.Println("Generating delta")
 	err = delta.GenerateDelta(ctx, signature)

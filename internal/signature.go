@@ -8,12 +8,13 @@ import (
 	"log"
 
 	"vmdiff/chunker"
+	iproto "vmdiff/internal/proto"
 
 	"google.golang.org/protobuf/proto"
 )
 
 type Signature struct {
-	SigProto
+	iproto.SigProto
 	SumList []string `json:"-"`
 }
 
@@ -34,7 +35,7 @@ func GenerateSignature(ctx context.Context, chunker chunker.Chunker) (*Signature
 			return nil, err
 		}
 
-		sigEnt := &SigEntry{
+		sigEnt := &iproto.SigEntry{
 			Sum:    fmt.Sprintf("%x", md5.Sum(chunk.Data)),
 			Size:   chunk.Size,
 			Offset: chunk.Offset,

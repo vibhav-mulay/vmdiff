@@ -2,7 +2,7 @@
 
 CURR_DIR=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-PROTO_FILES=$(wildcard $(CURR_DIR)*/*.proto)
+PROTO_FILES=$(wildcard $(CURR_DIR)*/*/*.proto)
 PROTO_FILES_BASE=$(basename $(PROTO_FILES))
 GO_FILES=$(addsuffix .pb.go, $(PROTO_FILES_BASE))
 
@@ -12,6 +12,7 @@ PROTOC_OPTS=--proto_path=$(CURR_DIR) --go_out=$(CURR_DIR) --go_opt=paths=source_
 vmdiff: fmt proto
 	go build
 
+.PHONY: proto
 proto: $(GO_FILES)
 
 $(GO_FILES): $(PROTO_FILES)
@@ -28,6 +29,11 @@ test:
 .PHONY: install
 install: fmt proto
 	go install
+
+.PHONY: coverage
+coverage:
+	$(MAKE) test testargs="-coverprofile=coverage.out" && \
+		go tool cover -html=coverage.out
 
 .PHONY: all
 all: vmdiff test

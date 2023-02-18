@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 
+	iproto "vmdiff/internal/proto"
+
 	"google.golang.org/protobuf/proto"
 )
 
@@ -15,7 +17,7 @@ type DeltaPatcher struct {
 	dryRun        bool
 	runningOffset int64
 
-	readCh chan *DeltaEntry
+	readCh chan *iproto.DeltaEntry
 }
 
 func NewDeltaPatcher(infile InputReader, outfile OutputWriter, deltafile io.Reader, dryRun bool) *DeltaPatcher {
@@ -24,7 +26,7 @@ func NewDeltaPatcher(infile InputReader, outfile OutputWriter, deltafile io.Read
 		outFile:   outfile,
 		deltaFile: deltafile,
 		dryRun:    dryRun,
-		readCh:    make(chan *DeltaEntry, 20),
+		readCh:    make(chan *iproto.DeltaEntry, 20),
 	}
 }
 
@@ -54,7 +56,7 @@ func (p *DeltaPatcher) PatchDelta(ctx context.Context) error {
 	return nil
 }
 
-func (p *DeltaPatcher) AddBlock(entry *DeltaEntry) error {
+func (p *DeltaPatcher) AddBlock(entry *iproto.DeltaEntry) error {
 	_, err := p.outFile.WriteAt(entry.Data, entry.Offset)
 	if err != nil {
 		return err
@@ -63,7 +65,7 @@ func (p *DeltaPatcher) AddBlock(entry *DeltaEntry) error {
 	return nil
 }
 
-func (p *DeltaPatcher) CopyBlock(entry *DeltaEntry) error {
+func (p *DeltaPatcher) CopyBlock(entry *iproto.DeltaEntry) error {
 	data := make([]byte, entry.Size)
 	_, err := p.inFile.ReadAt(data, entry.OldOffset)
 	if err != nil {
@@ -80,7 +82,7 @@ func (p *DeltaPatcher) CopyBlock(entry *DeltaEntry) error {
 
 func (p *DeltaPatcher) StartLoad(ctx context.Context) {
 	for {
-		header := &EntryHeader{Size: 2}
+		header := &iproto.EntryHeader{Size: 2}
 		headerLen := proto.Size(header)
 		headerData := make([]byte, headerLen)
 
@@ -100,7 +102,7 @@ func (p *DeltaPatcher) StartLoad(ctx context.Context) {
 
 		deltaEntSize := header.Size
 		deltaEntData := make([]byte, deltaEntSize)
-		deltaEnt := &DeltaEntry{}
+		deltaEnt := &iproto.DeltaEntry{}
 
 		_, err = io.ReadFull(p.deltaFile, deltaEntData)
 		if err != nil {

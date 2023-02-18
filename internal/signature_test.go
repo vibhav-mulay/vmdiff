@@ -5,56 +5,16 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
-	"io"
 	"testing"
 
 	"vmdiff/chunker"
+	"vmdiff/internal/testhelper"
 
 	"github.com/stretchr/testify/assert"
 )
 
 var TestData = []string{"This", "is", "test", "data"}
-var ErrChunker = fmt.Errorf("Chunker Error")
 var MarshalledSignature []byte
-
-type TestChunker struct {
-	erroneous bool
-	data      []string
-	dataIndex int
-	offset    int64
-}
-
-func NewTestChunker(d []string, e bool) chunker.Chunker {
-	return &TestChunker{
-		data:      d,
-		erroneous: e,
-	}
-}
-
-func (t *TestChunker) Name() string {
-	return "testchunker"
-}
-
-func (t *TestChunker) Next() (chunk *chunker.Chunk, err error) {
-	if t.erroneous {
-		return nil, ErrChunker
-	}
-
-	if t.dataIndex == len(t.data) {
-		return nil, io.EOF
-	}
-
-	chunk, err = &chunker.Chunk{
-		Data:        []byte(t.data[t.dataIndex]),
-		Offset:      t.offset,
-		Size:        int64(len(t.data[t.dataIndex])),
-		Fingerprint: uint64(12345),
-	}, nil
-
-	t.dataIndex++
-	t.offset = t.offset + chunk.Size
-	return
-}
 
 func TestEmptySignature(t *testing.T) {
 	sign := EmptySignature()
@@ -62,7 +22,7 @@ func TestEmptySignature(t *testing.T) {
 	assert.Equal(t, len(sign.SumList), 0)
 }
 
-func TestGenerateSignatureAndDump(t *testing.T) {
+func TestSignature(t *testing.T) {
 	testcases := []struct {
 		name      string
 		erroneous bool
@@ -82,12 +42,12 @@ func TestGenerateSignatureAndDump(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(fmt.Sprintf("%s", tc.name), func(t *testing.T) {
-			chunker := NewTestChunker(tc.testdata, tc.erroneous)
+			chunker := testhelper.NewTestChunker(tc.testdata, tc.erroneous)
 			ctx := context.Background()
 
 			sign, err := GenerateSignature(ctx, chunker)
 			if tc.erroneous {
-				assert.Equal(t, ErrChunker, err)
+				assert.Equal(t, testhelper.ErrChunker, err)
 				return
 			} else {
 				assert.Nil(t, err)

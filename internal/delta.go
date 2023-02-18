@@ -6,16 +6,15 @@ import (
 	"log"
 
 	"vmdiff/chunker"
+	iproto "vmdiff/internal/proto"
 	"vmdiff/utils"
 
 	"google.golang.org/protobuf/proto"
 )
 
 type DeltaGenerator struct {
-	inFile       InputReader
-	deltaFile    io.Writer
-	writeCh      chan *DeltaEntry
-	dumpComplete chan struct{}
+	inFile InputReader
+	dumper DeltaDumper
 }
 
 const (
@@ -23,12 +22,10 @@ const (
 	Copy string = "copy"
 )
 
-func NewDeltaGenerator(infile InputReader, deltafile io.Writer) *DeltaGenerator {
+func NewDeltaGenerator(infile InputReader, d DeltaDumper) *DeltaGenerator {
 	return &DeltaGenerator{
-		inFile:       infile,
-		deltaFile:    deltafile,
-		writeCh:      make(chan *DeltaEntry, 20),
-		dumpComplete: make(chan struct{}),
+		inFile: infile,
+		dumper: d,
 	}
 }
 
@@ -45,7 +42,7 @@ func (d *DeltaGenerator) GenerateDelta(ctx context.Context, signature *Signature
 	}
 
 	log.Println("Starting delta write to file goroutine")
-	go d.StartDump(ctx)
+	d.dumper.StartDump(ctx, WriteEntry)
 
 	err = d.CompareSignatures(ctx, signature, newsignature)
 	if err != nil {
@@ -64,7 +61,7 @@ func (d *DeltaGenerator) CompareSignatures(ctx context.Context, oldsig, newsig *
 	newSigIndex := 0
 	newSigLen := len(newsig.Entries)
 
-	var deltaEnt *DeltaEntry
+	var deltaEnt *iproto.DeltaEntry
 
 	for _, item := range lcs {
 		for ; ; newSigIndex++ {
@@ -74,7 +71,7 @@ func (d *DeltaGenerator) CompareSignatures(ctx context.Context, oldsig, newsig *
 				deltaEnt = d.DeltaAddEntry(newsig.Entries[newSigIndex])
 			}
 
-			d.writeCh <- deltaEnt
+			d.dumper.Dump(deltaEnt)
 
 			if newsig.Entries[newSigIndex].Sum == item {
 				newSigIndex++
@@ -90,54 +87,15 @@ func (d *DeltaGenerator) CompareSignatures(ctx context.Context, oldsig, newsig *
 			deltaEnt = d.DeltaAddEntry(newsig.Entries[newSigIndex])
 		}
 
-		d.writeCh <- deltaEnt
+		d.dumper.Dump(deltaEnt)
 	}
 
-	close(d.writeCh)
-	<-d.dumpComplete
+	d.dumper.EndDump()
 	return err
 }
 
-func (d *DeltaGenerator) StartDump(ctx context.Context) {
-	defer func() {
-		d.dumpComplete <- struct{}{}
-	}()
-
-	for entry := range d.writeCh {
-		d.WriteEntry(entry)
-	}
-}
-
-func (d *DeltaGenerator) WriteEntry(entry *DeltaEntry) {
-	data, err := proto.Marshal(entry)
-	if err != nil {
-		panic(err)
-	}
-
-	dataLen := len(data)
-
-	eheader := &EntryHeader{
-		Size: uint64(dataLen),
-	}
-
-	header, err := proto.Marshal(eheader)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = d.deltaFile.Write(header)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = d.deltaFile.Write(data)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (d *DeltaGenerator) DeltaAddEntry(sigEnt *SigEntry) *DeltaEntry {
-	deltaEnt := &DeltaEntry{
+func (d *DeltaGenerator) DeltaAddEntry(sigEnt *iproto.SigEntry) *iproto.DeltaEntry {
+	deltaEnt := &iproto.DeltaEntry{
 		Action: Add,
 		Offset: sigEnt.Offset,
 		Size:   sigEnt.Size,
@@ -147,8 +105,8 @@ func (d *DeltaGenerator) DeltaAddEntry(sigEnt *SigEntry) *DeltaEntry {
 	return deltaEnt
 }
 
-func (d *DeltaGenerator) DeltaCopyEntry(sigEnt, sigEntOld *SigEntry) *DeltaEntry {
-	deltaEnt := &DeltaEntry{
+func (d *DeltaGenerator) DeltaCopyEntry(sigEnt, sigEntOld *iproto.SigEntry) *iproto.DeltaEntry {
+	deltaEnt := &iproto.DeltaEntry{
 		Action:    Copy,
 		Offset:    sigEnt.Offset,
 		Size:      sigEnt.Size,
@@ -167,4 +125,32 @@ func (d *DeltaGenerator) DataAt(offset, size int64) []byte {
 	}
 
 	return data
+}
+
+func WriteEntry(w io.Writer, entry *iproto.DeltaEntry) {
+	data, err := proto.Marshal(entry)
+	if err != nil {
+		panic(err)
+	}
+
+	dataLen := len(data)
+
+	eheader := &iproto.EntryHeader{
+		Size: uint64(dataLen),
+	}
+
+	header, err := proto.Marshal(eheader)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = w.Write(header)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = w.Write(data)
+	if err != nil {
+		panic(err)
+	}
 }
