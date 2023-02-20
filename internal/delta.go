@@ -22,6 +22,10 @@ const (
 	Copy string = "copy"
 )
 
+// Monkey patching for UT. I don't like this.
+// Need to find a better way to do this.
+var GetChunker = chunker.GetChunker
+
 func NewDeltaGenerator(infile InputReader, d DeltaDumper) *DeltaGenerator {
 	return &DeltaGenerator{
 		inFile: infile,
@@ -31,7 +35,7 @@ func NewDeltaGenerator(infile InputReader, d DeltaDumper) *DeltaGenerator {
 
 func (d *DeltaGenerator) GenerateDelta(ctx context.Context, signature *Signature) error {
 	log.Printf("Initializing chunker: %s", signature.Chunker)
-	chunker, err := chunker.GetChunker(signature.Chunker, d.inFile)
+	chunker, err := GetChunker(signature.Chunker, d.inFile)
 	if err != nil {
 		return err
 	}

@@ -64,16 +64,18 @@ func TestDeltaGenerator(t *testing.T) {
 
 	chunker = testhelper.NewTestChunker(NewData, false)
 
-	newSign, err := GenerateSignature(ctx, chunker)
-	assert.Nil(t, err)
-
+	//	newSign, err := GenerateSignature(ctx, chunker)
+	//	assert.Nil(t, err)
+	//
 	validator := testhelper.NewDeltaValidator(t, Change)
-
+	//
 	input := strings.Join(NewData, "")
 	reader := strings.NewReader(input)
 	delta := NewDeltaGenerator(reader, validator)
-
-	err = delta.CompareSignatures(ctx, sign, newSign)
+	//
+	//	err = delta.CompareSignatures(ctx, sign, newSign)
+	GetChunker = testhelper.GetChunker(NewData)
+	err = delta.GenerateDelta(ctx, sign)
 	assert.Nil(t, err)
 }
 

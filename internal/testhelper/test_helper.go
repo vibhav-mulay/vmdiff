@@ -77,3 +77,15 @@ func (d *DeltaValidator) Dump(entry *proto.DeltaEntry) {
 
 func (d *DeltaValidator) EndDump() {
 }
+
+func GetChunker(input []string) func(string, io.Reader) (chunker.Chunker, error) {
+	return func(cStr string, r io.Reader) (chunker.Chunker, error) {
+		switch cStr {
+		case "testchunker":
+			fmt.Printf("XXX: %v\n", input)
+			return NewTestChunker(input, false), nil
+		default:
+			return nil, chunker.ErrInvalidChunker
+		}
+	}
+}
