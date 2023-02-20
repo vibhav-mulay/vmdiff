@@ -41,6 +41,7 @@ func init() {
 }
 
 func doSignature(cmd *cobra.Command, args []string) error {
+	// Validate the file related inputs and open the necessary files
 	files, err := validateSigCmdFileParams()
 	if err != nil {
 		return err

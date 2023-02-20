@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// Carry out the instructions mentioned in the delta file 
 type DeltaPatcher struct {
 	inFile  InputReader
 	outFile OutputWriter
@@ -17,6 +18,7 @@ type DeltaPatcher struct {
 	dryRun  bool
 }
 
+// Creates a DeltaPatcher with the provided input
 func NewDeltaPatcher(infile InputReader, outfile OutputWriter, loader DeltaLoader, dryRun bool) *DeltaPatcher {
 	return &DeltaPatcher{
 		inFile:  infile,
@@ -26,6 +28,8 @@ func NewDeltaPatcher(infile InputReader, outfile OutputWriter, loader DeltaLoade
 	}
 }
 
+// From the information given in the delta file, generate the updated file
+// with the help of the old file
 func (p *DeltaPatcher) PatchDelta(ctx context.Context) error {
 	log.Println("Starting delta read from file goroutine")
 	p.loader.StartLoad(ctx, LoadEntry)
@@ -39,11 +43,11 @@ func (p *DeltaPatcher) PatchDelta(ctx context.Context) error {
 	for entry := range p.loader.Next() {
 		switch entry.Action {
 		case Add:
-			if err = p.AddBlock(entry); err != nil {
+			if err = p.addBlock(entry); err != nil {
 				return err
 			}
 		case Copy:
-			if err = p.CopyBlock(entry); err != nil {
+			if err = p.copyBlock(entry); err != nil {
 				return err
 			}
 		}
@@ -52,7 +56,7 @@ func (p *DeltaPatcher) PatchDelta(ctx context.Context) error {
 	return nil
 }
 
-func (p *DeltaPatcher) AddBlock(entry *iproto.DeltaEntry) error {
+func (p *DeltaPatcher) addBlock(entry *iproto.DeltaEntry) error {
 	_, err := p.outFile.WriteAt(entry.Data, entry.Offset)
 	if err != nil {
 		return err
@@ -61,7 +65,7 @@ func (p *DeltaPatcher) AddBlock(entry *iproto.DeltaEntry) error {
 	return nil
 }
 
-func (p *DeltaPatcher) CopyBlock(entry *iproto.DeltaEntry) error {
+func (p *DeltaPatcher) copyBlock(entry *iproto.DeltaEntry) error {
 	data := make([]byte, entry.Size)
 	_, err := p.inFile.ReadAt(data, entry.OldOffset)
 	if err != nil {
@@ -76,6 +80,7 @@ func (p *DeltaPatcher) CopyBlock(entry *iproto.DeltaEntry) error {
 	return nil
 }
 
+// Do not do the actual patching. Just print the patching instructions
 func (p *DeltaPatcher) DryRun() {
 	for entry := range p.loader.Next() {
 		entry.Data = nil
@@ -83,6 +88,7 @@ func (p *DeltaPatcher) DryRun() {
 	}
 }
 
+// Deserialize/Unmarshal the protobuf DeltaEntry after reading from the io.Reader
 func LoadEntry(r io.Reader) (*iproto.DeltaEntry, error) {
 	header := &iproto.EntryHeader{Size: 2}
 	headerLen := proto.Size(header)

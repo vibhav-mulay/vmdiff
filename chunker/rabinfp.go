@@ -13,6 +13,7 @@ const (
 	POL         = restic.Pol(0x39fc525c05db35)
 )
 
+// Implements the Rabin-fingerprint based CDC algorithm
 type RabinFPChunker struct {
 	*restic.Chunker
 }

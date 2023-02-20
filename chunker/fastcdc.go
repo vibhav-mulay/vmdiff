@@ -11,6 +11,7 @@ const (
 	AVG_CHUNK   = 256 << 10
 )
 
+// Implements the FastCDC algorithm
 type FastCDCChunker struct {
 	*fastcdc.Chunker
 }

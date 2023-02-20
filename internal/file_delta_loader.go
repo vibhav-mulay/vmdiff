@@ -7,11 +7,14 @@ import (
 	iproto "vmdiff/internal/proto"
 )
 
+// Loads the delta entries by reading from io.Reader and
+// making them available to the caller
 type FileDeltaLoader struct {
 	deltaFile io.Reader
 	readCh    chan *iproto.DeltaEntry
 }
 
+// Creates FileDeltaLoader
 func NewFileDeltaLoader(deltafile io.Reader) *FileDeltaLoader {
 	return &FileDeltaLoader{
 		deltaFile: deltafile,
@@ -21,6 +24,7 @@ func NewFileDeltaLoader(deltafile io.Reader) *FileDeltaLoader {
 
 var _ DeltaLoader = &FileDeltaLoader{}
 
+// Start reading the delta entries
 func (l *FileDeltaLoader) StartLoad(ctx context.Context, entryLoader func(io.Reader) (*iproto.DeltaEntry, error)) {
 	go l.startLoad(ctx, entryLoader)
 }
@@ -40,6 +44,7 @@ func (l *FileDeltaLoader) startLoad(ctx context.Context, entryLoader func(io.Rea
 	}
 }
 
+// The caller calls this to get a stream of delta entries
 func (l *FileDeltaLoader) Next() <-chan *iproto.DeltaEntry {
 	return l.readCh
 }

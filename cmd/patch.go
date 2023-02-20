@@ -45,6 +45,7 @@ func init() {
 }
 
 func doPatch(cmd *cobra.Command, args []string) error {
+	// Validate the file related inputs and open the necessary files
 	files, err := validatePatchCmdFileParams()
 	if err != nil {
 		return err

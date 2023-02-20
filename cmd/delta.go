@@ -42,6 +42,7 @@ func init() {
 }
 
 func doDelta(cmd *cobra.Command, args []string) error {
+	// Validate the file related inputs and open the necessary files
 	files, err := validateDeltaCmdFileParams()
 	if err != nil {
 		return err

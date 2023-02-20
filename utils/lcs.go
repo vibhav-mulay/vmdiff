@@ -1,5 +1,6 @@
 package utils
 
+// Determines Longest Common Subsequence from the two input list
 func DetermineLCS(lst1, lst2 []string) []string {
 	len1 := len(lst1)
 	len2 := len(lst2)
@@ -37,6 +38,7 @@ func DetermineLCS(lst1, lst2 []string) []string {
 	return lcs
 }
 
+// Max of two integers
 func Max(i, j int) int {
 	if i > j {
 		return i
