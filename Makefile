@@ -48,6 +48,6 @@ all: vmdiff test
 
 .PHONY: clean
 clean:
-	-rm -f $(PROTO_GO_FILES)
+	-rm -f $(PROTO_GO_FILES) coverage.out
 	go clean
 	go clean -testcache
