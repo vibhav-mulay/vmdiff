@@ -22,3 +22,8 @@ type DeltaDumper interface {
 	Dump(*proto.DeltaEntry)
 	EndDump()
 }
+
+type DeltaLoader interface {
+	StartLoad(context.Context, func(io.Reader) (*proto.DeltaEntry, error))
+	Next() <-chan *proto.DeltaEntry
+}

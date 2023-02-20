@@ -53,7 +53,8 @@ func doPatch(cmd *cobra.Command, args []string) error {
 
 	ctx := context.Background()
 
-	patch := internal.NewDeltaPatcher(files.inFile, files.outFile, files.deltaFile, patchOpts.dryRun)
+	loader := internal.NewFileDeltaLoader(files.deltaFile)
+	patch := internal.NewDeltaPatcher(files.inFile, files.outFile, loader, patchOpts.dryRun)
 
 	log.Println("Patching delta")
 	err = patch.PatchDelta(ctx)

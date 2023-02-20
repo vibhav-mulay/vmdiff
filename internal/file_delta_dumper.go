@@ -21,6 +21,8 @@ func NewFileDeltaDumper(deltafile io.Writer) *FileDeltaDumper {
 	}
 }
 
+var _ DeltaDumper = &FileDeltaDumper{}
+
 func (d *FileDeltaDumper) StartDump(ctx context.Context, entryWriter func(io.Writer, *iproto.DeltaEntry)) {
 	go d.startDump(ctx, entryWriter)
 }

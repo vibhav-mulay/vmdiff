@@ -11,27 +11,24 @@ import (
 )
 
 type DeltaPatcher struct {
-	inFile    InputReader
-	outFile   OutputWriter
-	deltaFile io.Reader
-	dryRun    bool
-
-	readCh chan *iproto.DeltaEntry
+	inFile  InputReader
+	outFile OutputWriter
+	loader  DeltaLoader
+	dryRun  bool
 }
 
-func NewDeltaPatcher(infile InputReader, outfile OutputWriter, deltafile io.Reader, dryRun bool) *DeltaPatcher {
+func NewDeltaPatcher(infile InputReader, outfile OutputWriter, loader DeltaLoader, dryRun bool) *DeltaPatcher {
 	return &DeltaPatcher{
-		inFile:    infile,
-		outFile:   outfile,
-		deltaFile: deltafile,
-		dryRun:    dryRun,
-		readCh:    make(chan *iproto.DeltaEntry, 20),
+		inFile:  infile,
+		outFile: outfile,
+		loader:  loader,
+		dryRun:  dryRun,
 	}
 }
 
 func (p *DeltaPatcher) PatchDelta(ctx context.Context) error {
 	log.Println("Starting delta read from file goroutine")
-	go p.StartLoad(ctx)
+	p.loader.StartLoad(ctx, LoadEntry)
 
 	if p.dryRun {
 		p.DryRun()
@@ -39,7 +36,7 @@ func (p *DeltaPatcher) PatchDelta(ctx context.Context) error {
 	}
 
 	var err error
-	for entry := range p.readCh {
+	for entry := range p.loader.Next() {
 		switch entry.Action {
 		case Add:
 			if err = p.AddBlock(entry); err != nil {
@@ -79,47 +76,44 @@ func (p *DeltaPatcher) CopyBlock(entry *iproto.DeltaEntry) error {
 	return nil
 }
 
-func (p *DeltaPatcher) StartLoad(ctx context.Context) {
-	for {
-		header := &iproto.EntryHeader{Size: 2}
-		headerLen := proto.Size(header)
-		headerData := make([]byte, headerLen)
-
-		_, err := io.ReadFull(p.deltaFile, headerData)
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			close(p.readCh)
-			break
-		}
-		if err != nil {
-			panic(err)
-		}
-
-		err = proto.Unmarshal(headerData, header)
-		if err != nil {
-			panic(err)
-		}
-
-		deltaEntSize := header.Size
-		deltaEntData := make([]byte, deltaEntSize)
-		deltaEnt := &iproto.DeltaEntry{}
-
-		_, err = io.ReadFull(p.deltaFile, deltaEntData)
-		if err != nil {
-			panic(err)
-		}
-
-		err = proto.Unmarshal(deltaEntData, deltaEnt)
-		if err != nil {
-			panic(err)
-		}
-
-		p.readCh <- deltaEnt
-	}
-}
-
 func (p *DeltaPatcher) DryRun() {
-	for entry := range p.readCh {
+	for entry := range p.loader.Next() {
 		entry.Data = nil
 		log.Printf("%v", entry)
 	}
+}
+
+func LoadEntry(r io.Reader) (*iproto.DeltaEntry, error) {
+	header := &iproto.EntryHeader{Size: 2}
+	headerLen := proto.Size(header)
+	headerData := make([]byte, headerLen)
+
+	_, err := io.ReadFull(r, headerData)
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return nil, io.EOF
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	err = proto.Unmarshal(headerData, header)
+	if err != nil {
+		return nil, err
+	}
+
+	deltaEntSize := header.Size
+	deltaEntData := make([]byte, deltaEntSize)
+	deltaEnt := &iproto.DeltaEntry{}
+
+	_, err = io.ReadFull(r, deltaEntData)
+	if err != nil {
+		return nil, err
+	}
+
+	err = proto.Unmarshal(deltaEntData, deltaEnt)
+	if err != nil {
+		return nil, err
+	}
+
+	return deltaEnt, nil
 }
