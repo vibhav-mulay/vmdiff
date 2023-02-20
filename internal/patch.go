@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Carry out the instructions mentioned in the delta file 
+// Carry out the instructions mentioned in the delta file
 type DeltaPatcher struct {
 	inFile  InputReader
 	outFile OutputWriter
