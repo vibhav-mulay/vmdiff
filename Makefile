@@ -9,7 +9,7 @@ PROTO_GO_FILES=$(addsuffix .pb.go, $(PROTO_FILES_BASE))
 PROTOC=protoc
 PROTOC_OPTS=--proto_path=$(CURR_DIR) --go_out=$(CURR_DIR) --go_opt=paths=source_relative
 
-vmdiff: fmt proto
+vmdiff: proto fmt lint
 	go build
 
 .PHONY: proto
@@ -21,6 +21,10 @@ $(PROTO_GO_FILES): $(PROTO_FILES)
 .PHONY: fmt
 fmt:
 	go fmt ./...
+
+.PHONY: lint
+lint:
+	golangci-lint run
 
 .PHONY: test
 test: proto
