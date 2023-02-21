@@ -5,9 +5,8 @@ import (
 	"log"
 	"os"
 
-	"vmdiff/internal"
-
 	"github.com/spf13/cobra"
+	"github.com/vibhav-mulay/vmdiff"
 )
 
 type DeltaCmdOpenFiles struct {
@@ -52,13 +51,13 @@ func doDelta(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	log.Println("Loading signature")
-	signature, err := internal.LoadSignature(ctx, files.sigFile)
+	signature, err := vmdiff.LoadSignature(ctx, files.sigFile)
 	if err != nil {
 		return err
 	}
 
-	dumper := internal.NewFileDeltaDumper(files.deltaFile)
-	delta := internal.NewDeltaGenerator(files.inFile, dumper)
+	dumper := vmdiff.NewFileDeltaDumper(files.deltaFile)
+	delta := vmdiff.NewDeltaGenerator(files.inFile, dumper)
 
 	log.Println("Generating delta")
 	err = delta.GenerateDelta(ctx, signature)

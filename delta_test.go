@@ -1,4 +1,4 @@
-package internal
+package vmdiff
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"vmdiff/internal/proto"
-	"vmdiff/internal/testhelper"
+	"github.com/vibhav-mulay/vmdiff/proto"
+	"github.com/vibhav-mulay/vmdiff/testhelper"
 
 	"github.com/stretchr/testify/assert"
 	gproto "google.golang.org/protobuf/proto"

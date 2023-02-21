@@ -1,4 +1,4 @@
-package internal
+package vmdiff
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"vmdiff/chunker"
-	"vmdiff/internal/testhelper"
+	"github.com/vibhav-mulay/vmdiff/chunker"
+	"github.com/vibhav-mulay/vmdiff/testhelper"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -6,8 +6,8 @@ import (
 	"io"
 	"testing"
 
-	"vmdiff/chunker"
-	"vmdiff/internal/proto"
+	"github.com/vibhav-mulay/vmdiff/chunker"
+	"github.com/vibhav-mulay/vmdiff/proto"
 
 	"github.com/stretchr/testify/assert"
 )

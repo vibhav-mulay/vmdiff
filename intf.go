@@ -1,10 +1,10 @@
-package internal
+package vmdiff
 
 import (
 	"context"
 	"io"
 
-	"vmdiff/internal/proto"
+	"github.com/vibhav-mulay/vmdiff/proto"
 )
 
 // InputReader interface groups io.Reader and io.ReaderAt

@@ -1,13 +1,13 @@
-package internal
+package vmdiff
 
 import (
 	"context"
 	"io"
 	"log"
 
-	"vmdiff/chunker"
-	iproto "vmdiff/internal/proto"
-	"vmdiff/utils"
+	"github.com/vibhav-mulay/vmdiff/chunker"
+	iproto "github.com/vibhav-mulay/vmdiff/proto"
+	"github.com/vibhav-mulay/vmdiff/utils"
 
 	"google.golang.org/protobuf/proto"
 )

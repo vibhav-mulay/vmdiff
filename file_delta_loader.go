@@ -1,10 +1,10 @@
-package internal
+package vmdiff
 
 import (
 	"context"
 	"io"
 
-	iproto "vmdiff/internal/proto"
+	iproto "github.com/vibhav-mulay/vmdiff/proto"
 )
 
 // Loads the delta entries by reading from io.Reader and

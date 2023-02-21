@@ -1,7 +1,7 @@
 package main
 
 import (
-	"vmdiff/cmd"
+	"github.com/vibhav-mulay/vmdiff/vmdiff-cli/cmd"
 )
 
 func main() {

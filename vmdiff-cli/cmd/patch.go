@@ -5,9 +5,8 @@ import (
 	"log"
 	"os"
 
-	"vmdiff/internal"
-
 	"github.com/spf13/cobra"
+	"github.com/vibhav-mulay/vmdiff"
 )
 
 type PatchCmdOpenFiles struct {
@@ -54,8 +53,8 @@ func doPatch(cmd *cobra.Command, args []string) error {
 
 	ctx := context.Background()
 
-	loader := internal.NewFileDeltaLoader(files.deltaFile)
-	patch := internal.NewDeltaPatcher(files.inFile, files.outFile, loader, patchOpts.dryRun)
+	loader := vmdiff.NewFileDeltaLoader(files.deltaFile)
+	patch := vmdiff.NewDeltaPatcher(files.inFile, files.outFile, loader, patchOpts.dryRun)
 
 	log.Println("Patching delta")
 	err = patch.PatchDelta(ctx)

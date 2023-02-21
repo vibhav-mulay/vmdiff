@@ -1,11 +1,11 @@
-package internal
+package vmdiff
 
 import (
 	"context"
 	"io"
 	"testing"
 
-	"vmdiff/internal/proto"
+	"github.com/vibhav-mulay/vmdiff/proto"
 
 	"github.com/stretchr/testify/assert"
 )

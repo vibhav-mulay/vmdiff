@@ -5,10 +5,10 @@ import (
 	"log"
 	"os"
 
-	"vmdiff/chunker"
-	"vmdiff/internal"
+	"github.com/vibhav-mulay/vmdiff/chunker"
 
 	"github.com/spf13/cobra"
+	"github.com/vibhav-mulay/vmdiff"
 )
 
 type SignatureCmdOpenFiles struct {
@@ -57,7 +57,7 @@ func doSignature(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Println("Generating signature")
-	signature, err := internal.GenerateSignature(ctx, chunker)
+	signature, err := vmdiff.GenerateSignature(ctx, chunker)
 	if err != nil {
 		return err
 	}
