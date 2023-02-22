@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/vibhav-mulay/vmdiff"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +19,7 @@ var RootCmd = &cobra.Command{
 }
 
 var (
-	verbose bool
+	verbose int
 )
 
 func Execute() {
@@ -28,13 +30,29 @@ func Execute() {
 }
 
 func init() {
-	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false,
-		"Verbose")
+	RootCmd.PersistentFlags().CountVarP(&verbose, "verbose", "v",
+		"Verbose mode, specific multiple times for increased verbosity")
 }
 
 func initLogging(cmd *cobra.Command, args []string) {
-	log.SetPrefix("vmdiff: ")
-	if !verbose {
+	log.SetPrefix("vmdiff-cli: ")
+	log.SetFlags(log.LstdFlags | log.Lmsgprefix)
+	if verbose == 0 {
 		log.SetOutput(io.Discard)
+		vmdiff.DisableLogging()
+	} else {
+		level := vmdiff.INFO
+		switch verbose {
+		case 1:
+			level = vmdiff.ERROR
+		case 2:
+			level = vmdiff.INFO
+		case 3:
+			level = vmdiff.DEBUG
+		default:
+			level = vmdiff.TRACE
+		}
+
+		vmdiff.SetDefaultLogLevel(level)
 	}
 }

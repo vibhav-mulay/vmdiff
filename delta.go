@@ -3,7 +3,6 @@ package vmdiff
 import (
 	"context"
 	"io"
-	"log"
 
 	"github.com/vibhav-mulay/vmdiff/chunker"
 	iproto "github.com/vibhav-mulay/vmdiff/proto"
@@ -43,22 +42,27 @@ func NewDeltaGenerator(infile InputReader, d DeltaDumper) *DeltaGenerator {
 
 // Generate the delta describing changes between the two signatures
 func (d *DeltaGenerator) GenerateDelta(ctx context.Context, signature *Signature) error {
-	log.Printf("Initializing chunker: %s", signature.Chunker)
+	logger.Infof("Initializing chunker: %s", signature.Chunker)
 	chunker, err := GetChunker(signature.Chunker, d.inFile)
 	if err != nil {
+		logger.Errorf("GetChunker failed: %v", err)
 		return err
 	}
 
 	newsignature, err := GenerateSignature(ctx, chunker)
 	if err != nil {
+		logger.Errorf("GenerateSignature failed: %v", err)
 		return err
 	}
+	logger.Infof("New file signature generation complete")
 
-	log.Println("Starting delta write to file goroutine")
+	logger.Debugf("Starting delta write to file goroutine")
 	d.dumper.StartDump(ctx, WriteEntry)
 
+	logger.Debugf("Comparing signatures")
 	err = d.CompareSignatures(ctx, signature, newsignature)
 	if err != nil {
+		logger.Errorf("CompareSignatures failed: %v", err)
 		return err
 	}
 
@@ -71,7 +75,7 @@ func (d *DeltaGenerator) CompareSignatures(ctx context.Context, oldsig, newsig *
 
 	// Find all the common chunks in the two signatures using Longest Common Subsequence algorithm.
 	lcs := utils.DetermineLCS(oldsig.SumList, newsig.SumList)
-	log.Printf("LCS: %v", lcs)
+	logger.Tracef("LCS: %v", lcs)
 
 	newSigIndex := 0
 	newSigLen := len(newsig.Entries)
@@ -122,9 +126,11 @@ func (d *DeltaGenerator) deltaAddEntry(sigEnt *iproto.SigEntry) *iproto.DeltaEnt
 		Action: Add,
 		Offset: sigEnt.Offset,
 		Size:   sigEnt.Size,
-		Data:   d.dataAt(sigEnt.Offset, sigEnt.Size),
 	}
 
+	logger.Debugf("Added delta entry: %v", deltaEnt)
+
+	deltaEnt.Data = d.dataAt(sigEnt.Offset, sigEnt.Size)
 	return deltaEnt
 }
 
@@ -136,6 +142,7 @@ func (d *DeltaGenerator) deltaCopyEntry(sigEnt, sigEntOld *iproto.SigEntry) *ipr
 		OldOffset: sigEntOld.Offset,
 	}
 
+	logger.Debugf("Added delta entry: %v", deltaEnt)
 	return deltaEnt
 }
 
@@ -144,6 +151,7 @@ func (d *DeltaGenerator) dataAt(offset, size int64) []byte {
 
 	_, err := d.inFile.ReadAt(data, offset)
 	if err != nil {
+		logger.Errorf("dataAt ReadAt failed: %v", err)
 		panic(err)
 	}
 
@@ -156,6 +164,7 @@ func (d *DeltaGenerator) dataAt(offset, size int64) []byte {
 func WriteEntry(w io.Writer, entry *iproto.DeltaEntry) {
 	data, err := proto.Marshal(entry)
 	if err != nil {
+		logger.Errorf("Data Marshal failed: %v", err)
 		panic(err)
 	}
 
@@ -167,16 +176,19 @@ func WriteEntry(w io.Writer, entry *iproto.DeltaEntry) {
 
 	header, err := proto.Marshal(eheader)
 	if err != nil {
+		logger.Errorf("Header Marshal failed: %v", err)
 		panic(err)
 	}
 
 	_, err = w.Write(header)
 	if err != nil {
+		logger.Errorf("Header Write failed: %v", err)
 		panic(err)
 	}
 
 	_, err = w.Write(data)
 	if err != nil {
+		logger.Errorf("Delta Write failed: %v", err)
 		panic(err)
 	}
 }

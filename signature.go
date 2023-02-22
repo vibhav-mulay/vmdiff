@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/vibhav-mulay/vmdiff/chunker"
 	iproto "github.com/vibhav-mulay/vmdiff/proto"
@@ -28,6 +27,7 @@ func EmptySignature() *Signature {
 func GenerateSignature(ctx context.Context, chunker chunker.Chunker) (*Signature, error) {
 	sign := EmptySignature()
 	sign.Chunker = chunker.Name()
+	logger.Debugf("Using chunker %s", sign.Chunker)
 
 	for {
 		chunk, err := chunker.Next()
@@ -35,6 +35,7 @@ func GenerateSignature(ctx context.Context, chunker chunker.Chunker) (*Signature
 			break
 		}
 		if err != nil {
+			logger.Errorf("Chunker Next failed: %v", err)
 			return nil, err
 		}
 
@@ -44,11 +45,13 @@ func GenerateSignature(ctx context.Context, chunker chunker.Chunker) (*Signature
 			Offset: chunk.Offset,
 		}
 
+		logger.Tracef("Adding signature entry %v", sigEnt)
 		sign.Entries = append(sign.Entries, sigEnt)
 		sign.SumList = append(sign.SumList, sigEnt.Sum)
 	}
 
-	log.Println("Signature generation complete")
+	logger.Debugf("Added %d signature entries", len(sign.Entries))
+	logger.Infof("Signature generation complete")
 
 	return sign, nil
 }
@@ -66,6 +69,9 @@ func LoadSignature(ctx context.Context, r io.Reader) (*Signature, error) {
 		return sumList
 	}()
 
+	logger.Infof("Signature load complete")
+	logger.Debugf("Loaded %d entries", len(s.Entries))
+	logger.Tracef("Entries: %v", s.Entries)
 	return s, nil
 }
 
@@ -84,11 +90,13 @@ func (s *Signature) SumExists(sum string) (bool, int) {
 func (s *Signature) Dump(ctx context.Context, w io.Writer) {
 	data, err := proto.Marshal(s)
 	if err != nil {
+		logger.Errorf("Signature Dump Marshal failed: %v", err)
 		panic(err)
 	}
 
 	_, err = w.Write(data)
 	if err != nil {
+		logger.Errorf("Signature Dump Write failed: %v", err)
 		panic(err)
 	}
 }
@@ -97,11 +105,13 @@ func (s *Signature) Dump(ctx context.Context, w io.Writer) {
 func (s *Signature) Load(ctx context.Context, r io.Reader) {
 	data, err := io.ReadAll(r)
 	if err != nil {
+		logger.Errorf("Signature Load ReadAll failed: %v", err)
 		panic(err)
 	}
 
 	err = proto.Unmarshal(data, s)
 	if err != nil {
+		logger.Errorf("Signature Load Unmarshal failed: %v", err)
 		panic(err)
 	}
 }
