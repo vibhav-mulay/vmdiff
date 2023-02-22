@@ -56,7 +56,8 @@ func TestSignature(t *testing.T) {
 			ValidateSignatureEntries(t, sign, tc.testdata, chunker)
 
 			buffer := bytes.NewBuffer(nil)
-			sign.Dump(ctx, buffer)
+			err = sign.Dump(ctx, buffer)
+			assert.Nil(t, err)
 
 			MarshalledSignature = buffer.Bytes()
 			assert.NotEqual(t, 0, len(MarshalledSignature))

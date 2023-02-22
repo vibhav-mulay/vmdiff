@@ -103,6 +103,11 @@ func (d *DeltaGenerator) CompareSignatures(ctx context.Context, oldsig, newsig *
 				break
 			}
 		}
+
+		if d.dumper.Err() != nil {
+			logger.Errorf("Error while dumping: %v", d.dumper.Err())
+			return d.dumper.Err()
+		}
 	}
 
 	// After the last common chunk, treat everything as a new/changed chunks
@@ -113,11 +118,21 @@ func (d *DeltaGenerator) CompareSignatures(ctx context.Context, oldsig, newsig *
 			deltaEnt = d.deltaAddEntry(newsig.Entries[newSigIndex])
 		}
 
+		// Send the delta entry to the dumper
 		d.dumper.Dump(deltaEnt)
+		if d.dumper.Err() != nil {
+			logger.Errorf("Error while dumping: %v", d.dumper.Err())
+			return d.dumper.Err()
+		}
 	}
 
-	// Send the delta entry to the dumper
+	// End dumping
 	d.dumper.EndDump()
+	if d.dumper.Err() != nil {
+		logger.Errorf("Error while dumping: %v", d.dumper.Err())
+		return d.dumper.Err()
+	}
+
 	return err
 }
 
@@ -161,11 +176,11 @@ func (d *DeltaGenerator) dataAt(offset, size int64) []byte {
 // Serialize/Marshal the protobuf DeltaEntry and write to the io.Writer
 // The object is dumped in the format -->Header-->Data-->Header-->Data-->
 // Where header is a fixed size header containing size of the data to follow
-func WriteEntry(w io.Writer, entry *iproto.DeltaEntry) {
+func WriteEntry(w io.Writer, entry *iproto.DeltaEntry) error {
 	data, err := proto.Marshal(entry)
 	if err != nil {
 		logger.Errorf("Data Marshal failed: %v", err)
-		panic(err)
+		return err
 	}
 
 	dataLen := len(data)
@@ -177,18 +192,20 @@ func WriteEntry(w io.Writer, entry *iproto.DeltaEntry) {
 	header, err := proto.Marshal(eheader)
 	if err != nil {
 		logger.Errorf("Header Marshal failed: %v", err)
-		panic(err)
+		return err
 	}
 
 	_, err = w.Write(header)
 	if err != nil {
 		logger.Errorf("Header Write failed: %v", err)
-		panic(err)
+		return err
 	}
 
 	_, err = w.Write(data)
 	if err != nil {
 		logger.Errorf("Delta Write failed: %v", err)
-		panic(err)
+		return err
 	}
+
+	return nil
 }

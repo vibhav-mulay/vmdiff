@@ -13,8 +13,9 @@ import (
 var SEND_COUNT = 100
 var RECV_COUNT = 0
 
-func DummyWriteEntry(w io.Writer, entry *proto.DeltaEntry) {
+func DummyWriteEntry(w io.Writer, entry *proto.DeltaEntry) error {
 	RECV_COUNT++
+	return nil
 }
 
 func TestFileDeltaDumper(t *testing.T) {
@@ -28,4 +29,5 @@ func TestFileDeltaDumper(t *testing.T) {
 	d.EndDump()
 
 	assert.Equal(t, SEND_COUNT, RECV_COUNT)
+	assert.Nil(t, d.Err())
 }

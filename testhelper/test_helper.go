@@ -66,7 +66,7 @@ func NewDeltaValidator(t *testing.T, v []*proto.DeltaEntry) *DeltaValidator {
 	}
 }
 
-func (d *DeltaValidator) StartDump(ctx context.Context, entryWriter func(io.Writer, *proto.DeltaEntry)) {
+func (d *DeltaValidator) StartDump(ctx context.Context, entryWriter func(io.Writer, *proto.DeltaEntry) error) {
 }
 
 func (d *DeltaValidator) Dump(entry *proto.DeltaEntry) {
@@ -76,6 +76,10 @@ func (d *DeltaValidator) Dump(entry *proto.DeltaEntry) {
 }
 
 func (d *DeltaValidator) EndDump() {
+}
+
+func (d *DeltaValidator) Err() error {
+	return nil
 }
 
 func GetChunker(input []string) func(string, io.Reader) (chunker.Chunker, error) {
@@ -115,6 +119,10 @@ func (l *TestDeltaLoader) startLoad(ctx context.Context, entryLoader func(io.Rea
 
 func (l *TestDeltaLoader) Next() <-chan *proto.DeltaEntry {
 	return l.readCh
+}
+
+func (l *TestDeltaLoader) Err() error {
+	return nil
 }
 
 type StringBuilder struct {

@@ -12,6 +12,7 @@ import (
 type FileDeltaLoader struct {
 	deltaFile io.Reader
 	readCh    chan *iproto.DeltaEntry
+	err       error
 }
 
 // Creates FileDeltaLoader
@@ -37,7 +38,9 @@ func (l *FileDeltaLoader) startLoad(ctx context.Context, entryLoader func(io.Rea
 			break
 		}
 		if err != nil {
-			panic(err)
+			l.err = err
+			close(l.readCh)
+			break
 		}
 
 		l.readCh <- deltaEnt
@@ -47,4 +50,8 @@ func (l *FileDeltaLoader) startLoad(ctx context.Context, entryLoader func(io.Rea
 // The caller calls this to get a stream of delta entries
 func (l *FileDeltaLoader) Next() <-chan *iproto.DeltaEntry {
 	return l.readCh
+}
+
+func (l *FileDeltaLoader) Err() error {
+	return l.err
 }

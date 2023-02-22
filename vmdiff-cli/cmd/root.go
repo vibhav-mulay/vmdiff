@@ -41,7 +41,7 @@ func initLogging(cmd *cobra.Command, args []string) {
 		log.SetOutput(io.Discard)
 		vmdiff.DisableLogging()
 	} else {
-		level := vmdiff.INFO
+		level := vmdiff.TRACE
 		switch verbose {
 		case 1:
 			level = vmdiff.ERROR
@@ -49,8 +49,6 @@ func initLogging(cmd *cobra.Command, args []string) {
 			level = vmdiff.INFO
 		case 3:
 			level = vmdiff.DEBUG
-		default:
-			level = vmdiff.TRACE
 		}
 
 		vmdiff.SetDefaultLogLevel(level)

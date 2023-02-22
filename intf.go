@@ -21,8 +21,9 @@ type OutputWriter interface {
 
 // DeltaDumper handles the DeltaEntries as they are generated
 type DeltaDumper interface {
-	StartDump(context.Context, func(io.Writer, *proto.DeltaEntry))
+	StartDump(context.Context, func(io.Writer, *proto.DeltaEntry) error)
 	Dump(*proto.DeltaEntry)
+	Err() error
 	EndDump()
 }
 
@@ -30,4 +31,5 @@ type DeltaDumper interface {
 type DeltaLoader interface {
 	StartLoad(context.Context, func(io.Reader) (*proto.DeltaEntry, error))
 	Next() <-chan *proto.DeltaEntry
+	Err() error
 }

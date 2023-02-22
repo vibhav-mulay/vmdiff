@@ -51,6 +51,10 @@ func (p *DeltaPatcher) PatchDelta(ctx context.Context) error {
 				return err
 			}
 		}
+		if p.loader.Err() != nil {
+			logger.Errorf("Error while loading: %v", p.loader.Err())
+			return p.loader.Err()
+		}
 	}
 
 	return nil

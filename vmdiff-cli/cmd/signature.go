@@ -63,7 +63,10 @@ func doSignature(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Println("Writing signature to file")
-	signature.Dump(ctx, files.sigFile)
+	err = signature.Dump(ctx, files.sigFile)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
