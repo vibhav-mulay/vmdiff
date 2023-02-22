@@ -13,8 +13,8 @@ import (
 
 // the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:              "vmdiff",
-	Short:            "File diffing tool",
+	Use:              "vmdiff-cli",
+	Short:            "File diffing and updating tool",
 	PersistentPreRun: initLogging,
 }
 

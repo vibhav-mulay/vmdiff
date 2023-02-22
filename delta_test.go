@@ -81,14 +81,15 @@ func TestWriteEntry(t *testing.T) {
 		Size: 9201, Data: []byte("TESTDATA"),
 	}
 
-	WriteEntry(buffer, entry)
+	err := WriteEntry(buffer, entry)
+	assert.Nil(t, err)
 
 	reader := bytes.NewReader(buffer.Bytes())
 
 	header := &proto.EntryHeader{Size: 2}
 	headerLen := gproto.Size(header)
 	headerData := make([]byte, headerLen)
-	_, err := io.ReadFull(reader, headerData)
+	_, err = io.ReadFull(reader, headerData)
 	assert.Nil(t, err)
 
 	err = gproto.Unmarshal(headerData, header)
