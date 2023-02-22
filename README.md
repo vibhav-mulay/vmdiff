@@ -1,4 +1,4 @@
-# vmdiff
+# vmdiff [![Go Reference](https://pkg.go.dev/badge/github.com/vibhav-mulay/vmdiff.svg)](https://pkg.go.dev/github.com/vibhav-mulay/vmdiff)
 
 vmdiff is a file diffing and updating library similar to librsync, but using newer algorithms for generating chunks.
 The library currently supports FastCDC and Rabin-fingerprint based Content-Defined Chunking algorithms.
