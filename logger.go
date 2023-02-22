@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// Logger is implemented by any logging system that is used for standard logs.
 type Logger interface {
 	Errorf(string, ...interface{})
 	Infof(string, ...interface{})
@@ -60,10 +61,14 @@ func (l *defaultLogger) Tracef(f string, v ...interface{}) {
 
 var logger Logger = getDefaultLogger(INFO)
 
+// Sets the Logger to the given logger
+// The default logger uses the log package from the Go standard library
+// and write to stderr at INFO level
 func SetLogger(l Logger) {
 	logger = l
 }
 
+// Disable the logging completely
 func DisableLogging() {
 	l, ok := logger.(*defaultLogger)
 	if ok {
@@ -71,6 +76,8 @@ func DisableLogging() {
 	}
 }
 
+// Set the default logger log level.
+// Default level is INFO
 func SetDefaultLogLevel(l logLevel) {
 	logger = getDefaultLogger(l)
 }
