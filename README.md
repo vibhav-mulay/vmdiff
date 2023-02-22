@@ -1,15 +1,17 @@
-# File diffing and updating Tool
+# vmdiff
 
-File diffing and updating tool based on rdiff, but using newer algorithms for generating chunks.
-The tool currently supports FastCDC and Rabin-fingerprint based Content-Defined Chunking algorithms.
+vmdiff is a file diffing and updating library similar to librsync, but using newer algorithms for generating chunks.
+The library currently supports FastCDC and Rabin-fingerprint based Content-Defined Chunking algorithms.
 It uses Protocol Buffers (protobuf) to efficient encode the data when writing to files.
+
+It also provides a CLI tool 'vmdiff-cli'. The tool works similar to rdiff.
 
 ## Usage
 ```
-File diffing tool
+File diffing and updating tool
 
 Usage:
-  vmdiff [command]
+  vmdiff-cli [command]
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
@@ -19,8 +21,10 @@ Available Commands:
   signature   Generate signature file.
 
 Flags:
-  -h, --help      help for vmdiff
-  -v, --verbose   Verbose
+  -h, --help            help for vmdiff-cli
+  -v, --verbose count   Verbose mode, specific multiple times for increased verbosity
+
+Use "vmdiff-cli [command] --help" for more information about a command.
 ```
 
 The main actions are:
@@ -32,10 +36,13 @@ The main actions are:
 ## Build
 The tool can be built using the `make`
 ```
-# Build the tool along with all the required dependent files (protobuf)
+# Build the library along with all the required dependent files (protobuf)
 make
 
-# Install the tool
+# Build the CLI
+make vmdiff-cli
+
+# Build and install the tool
 make install
 
 # Run unit tests
