@@ -2,7 +2,7 @@
 
 vmdiff is a file diffing and updating library similar to librsync, but using newer algorithms for generating chunks.
 The library currently supports FastCDC and Rabin-fingerprint based Content-Defined Chunking algorithms.
-It uses Protocol Buffers (protobuf) to efficient encode the data when writing to files.
+It uses Protocol Buffers (protobuf) to efficiently encode the data when writing to files.
 
 It also provides a CLI tool 'vmdiff-cli'. The tool works similar to rdiff.
 
